@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="layout single-column">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Downloads</h2>
+        <span>Cached model bundle and assignment report</span>
+      </div>
+    </div>
+
+    <div class="download-grid">
+      <article class="download-card">
+        <div>
+          <h3>Cached Model Bundle</h3>
+          <p>Download the cached <code>detector_bundle.pkl</code> used by the scanner and validation routes.</p>
+        </div>
+        <a class="ghost download-link" href="{{ model_bundle_url }}">Download bundle</a>
+      </article>
+
+      <article class="download-card">
+        <div>
+          <h3>Assignment Report</h3>
+          <p>Download the published report PDF alongside the web app.</p>
+        </div>
+        <a class="ghost download-link" href="{{ report_url }}">Download report</a>
+      </article>
+    </div>
+  </section>
+</main>
+{% endblock %}

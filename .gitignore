@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Python specific
+*.sqlite3
+*.db
+*.bak
+
+# Large or generated artifacts
+artifacts/detector_bundle.pkl
+artifacts/*.pkl
+artifacts/plots/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log

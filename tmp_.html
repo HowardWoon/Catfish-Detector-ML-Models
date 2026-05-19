@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catfish Detector | Group 7</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <div>
+          <div class="eyebrow">WIA1006 Assignment Website</div>
+          <h1>Catfish Detector | Scanner</h1>
+          <p class="lede">Interactive scanner</p>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost" href="/export">Downloads</a>
+        </div>
+      </div>
+      <div class="hero-cards">
+        <article>
+          <span>Dataset rows</span>
+          <strong>50,000</strong>
+        </article>
+        <article>
+          <span>Features</span>
+          <strong>51</strong>
+        </article>
+        <article>
+          <span>Models</span>
+          <strong>6</strong>
+        </article>
+        <article>
+          <span>Catfished rows</span>
+          <strong>5,025</strong>
+        </article>
+      </div>
+    </header>
+
+    <nav class="page-nav" aria-label="Site pages">
+      <a class="nav-link active" href="/">Scanner</a>
+      <a class="nav-link " href="/notebook">Notebook Cells</a>
+      <a class="nav-link " href="/models">Model Table</a>
+    </nav>
+
+    
+<main class="layout single-column">
+  <section class="panel scanner-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Live Scanner</h2>
+        <span>Interactive input testing and validation</span>
+      </div>
+      <button id="run-validation" class="ghost">Run validation</button>
+    </div>
+
+    <div class="sliders">
+      <label>App usage time <input id="app_usage_time_min" type="range" min="0" max="300" step="5"><output></output></label>
+      <label>Swipe right ratio <input id="swipe_right_ratio" type="range" min="0" max="1" step="0.01"><output></output></label>
+      <label>Bio length <input id="bio_length" type="range" min="0" max="500" step="5"><output></output></label>
+      <label>Messages sent <input id="message_sent_count" type="range" min="0" max="100" step="1"><output></output></label>
+      <label>Profile pics <input id="profile_pics_count" type="range" min="0" max="6" step="1"><output></output></label>
+      <label>Likes received <input id="likes_received" type="range" min="0" max="200" step="5"><output></output></label>
+      <label>Mutual matches <input id="mutual_matches" type="range" min="0" max="30" step="1"><output></output></label>
+    </div>
+
+    <div class="verdict-grid">
+      <article class="verdict-card" id="verdict-card">
+        <span>Primary verdict</span>
+        <strong id="verdict-label">Loading...</strong>
+        <p id="verdict-score">Behavioral risk: --</p>
+        <div class="meter"><div id="meter-fill"></div></div>
+      </article>
+      <article class="verdict-card soft">
+        <span>ML votes</span>
+        <strong id="ml-votes">--</strong>
+        <p>Models flagging catfish</p>
+      </article>
+      <article class="verdict-card soft">
+        <span>Top flags</span>
+        <strong id="top-flag-count">--</strong>
+        <p>Behavioral signals</p>
+      </article>
+    </div>
+
+    <div class="split-grid">
+      <div>
+        <h3>Red Flags</h3>
+        <div id="flags" class="flags"></div>
+      </div>
+      <div>
+        <h3>Model Probabilities</h3>
+        <div id="models" class="model-grid"></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Validation</h3>
+      <div id="validation" class="validation-box">Run validation to check the scanner, notebook cells, and test profiles.</div>
+    </div>
+  </section>
+</main>
+
+  </div>
+
+  
+<script>
+  window.CATFISH_BOOTSTRAP = {"defaultProfile": {"app_usage_time_min": 150.0, "bio_length": 250.0, "likes_received": 99.0, "message_sent_count": 50.0, "mutual_matches": 13.0, "profile_pics_count": 3.0, "swipe_right_ratio": 0.5}, "thresholds": {"Decision Tree": 0.35224586288416077, "Extra Trees": 0.35292633420942, "Logistic Regression": 0.49999964941422737, "MLP Neural Network": 0.35727362962164, "Random Forest": 0.3502793465767445, "XGBoost": 0.4}};
+</script>
+<script src="/static/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="layout single-column">
+  <section class="panel scanner-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Profile Risk Assessment</h2>
+        <span>Interactive profile risk assessment and validation</span>
+      </div>
+      <button id="run-validation" class="ghost">Run validation</button>
+    </div>
+
+    <div class="sliders">
+      <label>App usage time <input id="app_usage_time_min" type="range" min="0" max="10000" step="1"><output></output></label>
+      <label>Swipe right ratio <input id="swipe_right_ratio" type="range" min="0" max="1" step="0.01"><output></output></label>
+      <label>Bio length <input id="bio_length" type="range" min="0" max="10000" step="1"><output></output></label>
+      <label>Messages sent <input id="message_sent_count" type="range" min="0" max="10000" step="1"><output></output></label>
+      <label>Profile pics <input id="profile_pics_count" type="range" min="0" max="100" step="1"><output></output></label>
+      <label>Likes received <input id="likes_received" type="range" min="0" max="10000" step="1"><output></output></label>
+      <label>Mutual matches <input id="mutual_matches" type="range" min="0" max="10000" step="1"><output></output></label>
+    </div>
+
+    <div class="verdict-grid">
+      <article class="verdict-card" id="verdict-card">
+        <span>Assessment</span>
+        <strong id="verdict-label">Loading...</strong>
+        <p id="verdict-score">Risk score: --</p>
+        <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="meter-fill" aria-hidden="true"></div></div>
+        <div class="risk-meta" style="margin-top:8px;color:var(--muted);font-size:0.95rem;">Confidence: <strong id="risk-confidence">--</strong></div>
+      </article>
+      <article class="verdict-card soft">
+        <span>Model agreement</span>
+        <strong id="ml-votes">--</strong>
+        <p>Number of models indicating elevated risk</p>
+      </article>
+      <article class="verdict-card soft">
+        <span>Key indicators</span>
+        <strong id="top-flag-count">--</strong>
+        <p>Notable behavioral signals</p>
+      </article>
+    </div>
+
+    <div class="split-grid">
+      <div>
+        <h3>Red Flags</h3>
+        <div id="flags" class="flags"></div>
+      </div>
+      <div>
+        <h3>Model Probabilities</h3>
+        <div id="models" class="model-grid"></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Validation</h3>
+      <div id="validation" class="validation-box">Run validation to check the scanner, notebook cells, and test profiles.</div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CATFISH_BOOTSTRAP = {{ {
+    'defaultProfile': test_profiles['genuine_median'],
+    'thresholds': artifacts.thresholds,
+  } | tojson }};
+</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

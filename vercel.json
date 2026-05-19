@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app.py": {
+      "excludeFiles": "{**/*.ipynb,**/*.csv,**/__pycache__/**,**/*.pyc}",
+      "includeFiles": [
+        "artifacts/**",
+        "WIA1006_WID3006_Group Assignment.pdf"
+      ]
+    }
+  }
+}

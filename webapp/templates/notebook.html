@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="layout single-column">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Notebook Code</h2>
+        <span>{{ notebook_cells|length }} cells rendered from the assignment notebook</span>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="all">All Cells</button>
+        <button class="tab" data-tab="code">Code Only</button>
+      </div>
+    </div>
+    <div class="cells" id="notebook-cells">
+      {% for cell in notebook_cells %}
+      <details class="cell" data-kind="{{ cell.type }}" {% if cell.type == 'code' %}open{% endif %}>
+        <summary>Cell {{ cell.index }} | {{ cell.title }}</summary>
+        <pre>{{ cell.source | e }}</pre>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

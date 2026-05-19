@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="layout single-column">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Model Table</h2>
+        <span>Leaderboard from the cached bundle</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Threshold</th>
+            <th>Accuracy</th>
+            <th>Recall</th>
+            <th>Precision</th>
+            <th>F1-Score</th>
+            <th>ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in leaderboard %}
+          <tr>
+            <td>{{ row['Model'] }}</td>
+            <td>{{ '%.4f'|format(row['Threshold']) }}</td>
+            <td>{{ '%.2f%%'|format(row['Accuracy'] * 100) }}</td>
+            <td>{{ '%.2f%%'|format(row['Recall'] * 100) }}</td>
+            <td>{{ '%.2f%%'|format(row['Precision'] * 100) }}</td>
+            <td>{{ '%.2f%%'|format(row['F1-Score'] * 100) }}</td>
+            <td>{{ '%.4f'|format(row['ROC-AUC']) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Diagnostic Plots</h2>
+        <span>Inline thumbnails (click to view/download)</span>
+      </div>
+    </div>
+    <div class="plots-inline" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:12px;">
+      {% if images %}
+        {% for img in images %}
+        <div style="width:30%; min-width:180px;">
+          <a href="{{ url_for('static', filename='plots/' ~ img) }}">
+            <img src="{{ url_for('static', filename='plots/' ~ img) }}" alt="{{ img }}" style="width:100%; height:auto; border:1px solid #ddd; background:white; padding:6px;"/>
+          </a>
+          <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.9rem; color:var(--muted);">
+            <span>{{ img }}</span>
+            <a href="{{ url_for('static', filename='plots/' ~ img) }}" class="ghost" download>Download</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="note">No plots available. Rebuild artifacts to generate plots.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel profiles-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Built-In Test Profiles</h2>
+        <span>Backend-provided scanner comparisons</span>
+      </div>
+    </div>
+    <div class="profile-grid">
+      {% for name, profile in test_profiles.items() %}
+      <article class="profile-card" data-profile-name="{{ name }}">
+        <h3>{{ name.replace('_', ' ').title() }}</h3>
+        <pre>{{ profile | tojson(indent=2) }}</pre>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

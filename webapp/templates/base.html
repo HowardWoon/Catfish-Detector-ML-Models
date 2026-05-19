@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catfish Detector | Group 7</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <div>
+          <div class="eyebrow">WIA1006 Assignment Website</div>
+          <h1>{{ page_title }}</h1>
+          <p class="lede">{{ page_description }}</p>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost" href="{{ url_for('export_page') }}">Downloads</a>
+        </div>
+      </div>
+      <div class="hero-cards">
+        <article>
+          <span>Dataset rows</span>
+          <strong>{{ "{:,.0f}".format(artifacts.dataset_shape[0]) }}</strong>
+        </article>
+        <article>
+          <span>Features</span>
+          <strong>{{ artifacts.feature_names|length }}</strong>
+        </article>
+        <article>
+          <span>Models</span>
+          <strong>{{ artifacts.models|length }}</strong>
+        </article>
+        <article>
+          <span>Catfished rows</span>
+          <strong>{{ "{:,.0f}".format(artifacts.class_counts['catfished']) }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <nav class="page-nav" aria-label="Site pages">
+      <a class="nav-link {% if active_page == 'scanner' %}active{% endif %}" href="{{ url_for('index') }}">Scanner</a>
+      <a class="nav-link {% if active_page == 'notebook' %}active{% endif %}" href="{{ url_for('notebook_page') }}">Notebook Cells</a>
+      <a class="nav-link {% if active_page == 'models' %}active{% endif %}" href="{{ url_for('models_page') }}">Model Table</a>
+    </nav>
+
+    {% block content %}{% endblock %}
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

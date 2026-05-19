@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catfish Detector | Group 7</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <div>
+          <div class="eyebrow">WIA1006 Assignment Website</div>
+          <h1>Models</h1>
+          <p class="lede">Model leaderboard and profiles</p>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost" href="/export">Downloads</a>
+        </div>
+      </div>
+      <div class="hero-cards">
+        <article>
+          <span>Dataset rows</span>
+          <strong>50,000</strong>
+        </article>
+        <article>
+          <span>Features</span>
+          <strong>51</strong>
+        </article>
+        <article>
+          <span>Models</span>
+          <strong>6</strong>
+        </article>
+        <article>
+          <span>Catfished rows</span>
+          <strong>5,025</strong>
+        </article>
+      </div>
+    </header>
+
+    <nav class="page-nav" aria-label="Site pages">
+      <a class="nav-link " href="/">Scanner</a>
+      <a class="nav-link " href="/notebook">Notebook Cells</a>
+      <a class="nav-link active" href="/models">Model Table</a>
+    </nav>
+
+    
+<main class="layout single-column">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Model Table</h2>
+        <span>Leaderboard from the cached bundle</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Threshold</th>
+            <th>Accuracy</th>
+            <th>Recall</th>
+            <th>Precision</th>
+            <th>F1-Score</th>
+            <th>ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td>Logistic Regression</td>
+            <td>0.5000</td>
+            <td>15.86%</td>
+            <td>94.83%</td>
+            <td>10.23%</td>
+            <td>18.47%</td>
+            <td>0.5033</td>
+          </tr>
+          
+          <tr>
+            <td>Decision Tree</td>
+            <td>0.3522</td>
+            <td>52.72%</td>
+            <td>48.16%</td>
+            <td>10.32%</td>
+            <td>16.99%</td>
+            <td>0.4973</td>
+          </tr>
+          
+          <tr>
+            <td>Extra Trees</td>
+            <td>0.3529</td>
+            <td>51.44%</td>
+            <td>48.06%</td>
+            <td>10.03%</td>
+            <td>16.59%</td>
+            <td>0.4945</td>
+          </tr>
+          
+          <tr>
+            <td>MLP Neural Network</td>
+            <td>0.3573</td>
+            <td>80.55%</td>
+            <td>10.55%</td>
+            <td>9.20%</td>
+            <td>9.83%</td>
+            <td>0.4915</td>
+          </tr>
+          
+          <tr>
+            <td>Random Forest</td>
+            <td>0.3503</td>
+            <td>82.37%</td>
+            <td>9.55%</td>
+            <td>10.11%</td>
+            <td>9.82%</td>
+            <td>0.4887</td>
+          </tr>
+          
+          <tr>
+            <td>XGBoost</td>
+            <td>0.4000</td>
+            <td>89.95%</td>
+            <td>0.00%</td>
+            <td>0.00%</td>
+            <td>0.00%</td>
+            <td>0.4936</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel profiles-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Built-In Test Profiles</h2>
+        <span>Backend-provided scanner comparisons</span>
+      </div>
+    </div>
+    <div class="profile-grid">
+      
+      <article class="profile-card" data-profile-name="genuine_median">
+        <h3>Genuine Median</h3>
+        <pre>{
+  "app_usage_time_min": 150.0,
+  "bio_length": 250.0,
+  "likes_received": 99.0,
+  "message_sent_count": 50.0,
+  "mutual_matches": 13.0,
+  "profile_pics_count": 3.0,
+  "swipe_right_ratio": 0.5
+}</pre>
+      </article>
+      
+      <article class="profile-card" data-profile-name="catfish_median">
+        <h3>Catfish Median</h3>
+        <pre>{
+  "app_usage_time_min": 151.0,
+  "bio_length": 245.0,
+  "likes_received": 101.0,
+  "message_sent_count": 51.0,
+  "mutual_matches": 13.0,
+  "profile_pics_count": 3.0,
+  "swipe_right_ratio": 0.5
+}</pre>
+      </article>
+      
+      <article class="profile-card" data-profile-name="low_activity">
+        <h3>Low Activity</h3>
+        <pre>{
+  "app_usage_time_min": 30.0,
+  "bio_length": 420.0,
+  "likes_received": 20.0,
+  "message_sent_count": 8.0,
+  "mutual_matches": 2.0,
+  "profile_pics_count": 1.0,
+  "swipe_right_ratio": 0.1
+}</pre>
+      </article>
+      
+      <article class="profile-card" data-profile-name="high_activity">
+        <h3>High Activity</h3>
+        <pre>{
+  "app_usage_time_min": 290.0,
+  "bio_length": 20.0,
+  "likes_received": 190.0,
+  "message_sent_count": 98.0,
+  "mutual_matches": 1.0,
+  "profile_pics_count": 0.0,
+  "swipe_right_ratio": 0.95
+}</pre>
+      </article>
+      
+    </div>
+  </section>
+</main>
+
+  </div>
+
+  
+<script src="/static/app.js"></script>
+
+</body>
+</html>
