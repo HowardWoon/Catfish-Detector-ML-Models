@@ -6,7 +6,7 @@
   
   Detecting Fake Personalities Through Behavioral Intelligence.
   
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HowardWoon/Catfish-Detector-ML-Models/blob/main/WIA1006_Catfish_Group7_V19_CHAMPION.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HowardWoon/Catfish-Detector-ML-Models/blob/main/WIA1006_Catfish_Group7_V19_Final.ipynb)
 </div>
 
 ---
@@ -21,7 +21,7 @@ The **Catfish Detector AI** is an advanced machine learning pipeline and interac
 * **Interactive Live Scanner**: A stunning, real-time web UI that allows users to adjust behavioral sliders and watch the AI models vote on the threat level instantly.
 
 ## 🧠 The Machine Learning Pipeline (V19 CHAMPION)
-Our ultimate [V19 Champion Notebook](WIA1006_Catfish_Group7_V19_CHAMPION.ipynb) represents the pinnacle of our optimization:
+Our ultimate [V19 Champion Notebook](WIA1006_Catfish_Group7_V19_Final.ipynb) represents the pinnacle of our optimization:
 1. **Dataset Generation**: 50,000 rows of synthetic dating app behavior.
 2. **Feature Engineering**: Calculates `engagement_score`, `swipe_intensity`, `msg_per_minute`, etc.
 3. **Data Balancing**: Utilizes **SMOTE-Tomek** to handle class imbalance, synthetically generating realistic minority class samples while pruning ambiguous Tomek links.
@@ -53,7 +53,7 @@ python app.py
 4. Open your browser and navigate to: `http://127.0.0.1:5000/`
 
 ## 📂 Repository Structure
-* `/WIA1006_Catfish_Group7_V19_CHAMPION.ipynb` - The primary ML pipeline notebook.
+* `/WIA1006_Catfish_Group7_V19_Final.ipynb` - The primary ML pipeline notebook.
 * `/dating_app_behavior_dataset.csv` - The injected synthetic dataset.
 * `/app.py` - Flask server handling the backend logic for the web UI.
 * `/catfish_core.py` - Core machine learning logic for local builds.
