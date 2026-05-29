@@ -40,10 +40,14 @@
       </div>
     </header>
 
-    <nav class="page-nav glass-panel" style="padding: 10px; border-radius: 99px; display: inline-flex;">
-      <a class="nav-link {% if active_page == 'scanner' %}active{% endif %}" href="{{ url_for('index') }}">AI Scanner</a>
-      <a class="nav-link {% if active_page == 'models' %}active{% endif %}" href="{{ url_for('models_page') }}">Architecture & Leaderboard</a>
-      <a class="nav-link {% if active_page == 'notebook' %}active{% endif %}" href="{{ url_for('notebook_page') }}">Jupyter Source</a>
+    <nav class="page-nav glass-panel" style="padding: 10px; border-radius: 99px; display: inline-flex; justify-content: center; width: 100%; flex-wrap: wrap;">
+      <a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+      <a class="nav-link {% if active_page == 'scanner' %}active{% endif %}" href="{{ url_for('scanner_page') }}">Live Scanner</a>
+      <a class="nav-link {% if active_page == 'explain' %}active{% endif %}" href="{{ url_for('explain_page') }}">Explainability</a>
+      <a class="nav-link {% if active_page == 'arena' %}active{% endif %}" href="{{ url_for('arena_page') }}">Model Arena</a>
+      <a class="nav-link {% if active_page == 'threats' %}active{% endif %}" href="{{ url_for('threats_page') }}">Threat Center</a>
+      <a class="nav-link {% if active_page == 'ethics' %}active{% endif %}" href="{{ url_for('ethics_page') }}">AI Ethics</a>
+      <a class="nav-link {% if active_page == 'downloads' %}active{% endif %}" href="{{ url_for('export_page') }}">Assets</a>
     </nav>
 
     {% block content %}{% endblock %}

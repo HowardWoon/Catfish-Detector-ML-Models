@@ -40,25 +40,35 @@ def create_app() -> Flask:
     def index():
         return render_template(
             "index.html",
-            page_title="Catfish Detector | Scanner",
-            page_description="Interactive scanner",
+            page_title="CATFISH.AI",
+            page_description="AI-Powered Online Dating Fraud Detection System",
+            active_page="home",
+            **_page_context(get_artifacts()),
+        )
+
+    @app.get("/scanner")
+    def scanner_page():
+        return render_template(
+            "scanner.html",
+            page_title="Live Profile Scanner",
+            page_description="Detecting Fake Personalities Through Behavioral Intelligence",
             active_page="scanner",
             **_page_context(get_artifacts()),
         )
 
-    @app.get("/notebook")
-    def notebook_page():
+    @app.get("/explain")
+    def explain_page():
+        artifacts = get_artifacts()
         return render_template(
-            "notebook.html",
-            page_title="Notebook",
-            page_description="Notebook cells from the assignment",
-            active_page="notebook",
-            **_page_context(get_artifacts()),
+            "explain.html",
+            page_title="AI Explainability Center",
+            page_description="Why did the AI flag this profile?",
+            active_page="explain",
+            **_page_context(artifacts),
         )
 
-    @app.get("/models")
-    def models_page():
-        # Also collect available diagnostic plot images so templates can inline thumbnails
+    @app.get("/arena")
+    def arena_page():
         artifacts = get_artifacts()
         plot_dir = PROJECT_ROOT / 'artifacts' / 'plots'
         images = []
@@ -66,28 +76,41 @@ def create_app() -> Flask:
             for p in sorted(plot_dir.iterdir()):
                 if p.suffix.lower() in ('.png', '.jpg', '.jpeg'):
                     images.append(p.name)
-        else:
-            # Fallback to static copies if available (copied during verification)
-            static_plot_dir = PROJECT_ROOT / 'webapp' / 'static' / 'plots'
-            if static_plot_dir.exists():
-                for p in sorted(static_plot_dir.iterdir()):
-                    if p.suffix.lower() in ('.png', '.jpg', '.jpeg'):
-                        images.append(p.name)
         return render_template(
-            "models.html",
-            page_title="Models",
-            page_description="Model leaderboard and profiles",
-            active_page="models",
+            "arena.html",
+            page_title="Model Battle Arena",
+            page_description="Comparing advanced ensemble architectures",
+            active_page="arena",
             images=images,
             **_page_context(artifacts),
+        )
+
+    @app.get("/threats")
+    def threats_page():
+        return render_template(
+            "threats.html",
+            page_title="Threat Monitoring Center",
+            page_description="Real-Time Dating App Security Operations",
+            active_page="threats",
+            **_page_context(get_artifacts()),
+        )
+
+    @app.get("/ethics")
+    def ethics_page():
+        return render_template(
+            "ethics.html",
+            page_title="Ethical AI Framework",
+            page_description="Balancing security with user privacy",
+            active_page="ethics",
+            **_page_context(get_artifacts()),
         )
 
     @app.get("/export")
     def export_page():
         return render_template(
             "export.html",
-            page_title="Downloads",
-            page_description="Download the cached model bundle and report",
+            page_title="System Architecture & Assets",
+            page_description="Download the core system models",
             active_page="downloads",
             model_bundle_url=url_for("download_model_bundle"),
             report_url=url_for("download_report"),
