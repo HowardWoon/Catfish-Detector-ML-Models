@@ -14,6 +14,8 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, precision_recall_curve
 from sklearn.metrics import roc_curve
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
@@ -73,7 +75,7 @@ DROP_COLUMNS = [
     "swipe_right_label",
 ]
 
-EPS = 1e-6
+EPS = 0.01
 
 
 @dataclass
@@ -86,7 +88,6 @@ class DetectorArtifacts:
     genuine_medians_raw: Dict[str, float]
     catfish_medians_raw: Dict[str, float]
     scaler: RobustScaler
-    pca: PCA
     thresholds: Dict[str, float]
     models: Dict[str, Any]
     feature_importances: Dict[str, float]
@@ -176,7 +177,6 @@ def build_scanner_input(
     feature_names: List[str],
     num_cols: List[str],
     scaler: RobustScaler,
-    pca: PCA,
 ) -> np.ndarray:
     row = dict(train_medians_raw)
     row.update(raw_values)
@@ -202,7 +202,13 @@ def build_scanner_input(
 
     input_frame = pd.DataFrame([{feature: row.get(feature, 0.0) for feature in feature_names}], columns=feature_names)
     input_frame[num_cols] = scaler.transform(input_frame[num_cols])
-    return pca.transform(input_frame.values)
+    
+    # Clip extreme anomalies so ML models evaluate them at the 99th percentile boundary
+    # rather than extrapolating wildly into uncharted numerical territory
+    input_values = input_frame.values.astype(np.float64)
+    np.clip(input_values, -5.0, 5.0, out=input_values)
+    
+    return input_values
 
 
 def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
@@ -278,6 +284,7 @@ def behavioral_risk(
     raw_input: Dict[str, float],
     population_stats: Dict[str, Tuple[float, float]],
 ) -> Tuple[float, List[Tuple[str, float]]]:
+    import math
     a = float(raw_input.get("app_usage_time_min", 0.0))
     s = float(raw_input.get("swipe_right_ratio", 0.0))
     b = float(raw_input.get("bio_length", 0.0))
@@ -290,6 +297,10 @@ def behavioral_risk(
         mean, std = population_stats.get(column, (0.0, 1.0))
         return (value - mean) / (std + EPS)
 
+    def anomaly_score(z: float) -> float:
+        # Maps a z-score gracefully to [0, 1]. A z-score of 4 (extreme) maps to ~0.73.
+        return 1.0 - math.exp(-abs(z) / 3.0)
+
     engagement = m / (a + 1)
     base_engagement = population_stats.get("message_sent_count", (1.0, 1.0))[0] / (
         population_stats.get("app_usage_time_min", (1.0, 1.0))[0] + 1
@@ -300,38 +311,36 @@ def behavioral_risk(
     likes_match_base = likes_mean / (matches_mean + 1)
     likes_match_current = likes / (matches + 1)
 
-    # Increase sensitivity so extreme values can push the behavioral score
-    # closer to the 99-100% range when inputs are highly anomalous.
-    # Allow component scores to exceed 1.0 for extreme z-scores so the
-    # combined weighted score can approach 100. We only clip negative values.
     component_scores = {
-        "High message count": max(0.0, zscore("message_sent_count", m)) / 1.0,
-        "Extreme swipe pattern": max(0.0, abs(zscore("swipe_right_ratio", s))) / 1.0,
-        "Suspiciously short bio": max(0.0, -zscore("bio_length", b)) / 1.0,
-        "Overlong bio": max(0.0, zscore("bio_length", b)) / 1.0,
-        "High engagement density": max(0.0, (engagement - base_engagement) / (base_engagement + EPS)) / 0.6,
-        "Very few profile pics": max(0.0, -zscore("profile_pics_count", pics)) / 0.6,
-        "High likes, few matches": max(0.0, (likes_match_current - likes_match_base) / (likes_match_base + EPS)) / 0.6,
-        "Excessive app usage": max(0.0, zscore("app_usage_time_min", a)) / 1.0,
-        "Very few mutual matches": max(0.0, -zscore("mutual_matches", matches)) / 1.0,
+        "High message count": anomaly_score(zscore("message_sent_count", m)) if m > population_stats.get("message_sent_count", (0,1))[0] else 0.0,
+        "Extreme swipe pattern": anomaly_score(zscore("swipe_right_ratio", s)),
+        "Suspiciously short bio": anomaly_score(zscore("bio_length", b)) if b < population_stats.get("bio_length", (0,1))[0] else 0.0,
+        "Overlong bio": anomaly_score(zscore("bio_length", b)) if b > population_stats.get("bio_length", (0,1))[0] else 0.0,
+        "High engagement density": anomaly_score((engagement - base_engagement) / (base_engagement + EPS)) if engagement > base_engagement else 0.0,
+        "Very few profile pics": anomaly_score(zscore("profile_pics_count", pics)) if pics < population_stats.get("profile_pics_count", (0,1))[0] else 0.0,
+        "High likes, few matches": anomaly_score((likes_match_current - likes_match_base) / (likes_match_base + EPS)) if likes_match_current > likes_match_base else 0.0,
+        "Excessive app usage": anomaly_score(zscore("app_usage_time_min", a)) if a > population_stats.get("app_usage_time_min", (0,1))[0] else 0.0,
+        "Very few mutual matches": anomaly_score(zscore("mutual_matches", matches)) if matches < population_stats.get("mutual_matches", (0,1))[0] else 0.0,
     }
 
     component_weights = {
-        "High message count": 0.20,
-        "Extreme swipe pattern": 0.12,
-        "Suspiciously short bio": 0.18,
+        "High message count": 0.22,
+        "Extreme swipe pattern": 0.15,
+        "Suspiciously short bio": 0.20,
         "Overlong bio": 0.04,
-        "High engagement density": 0.14,
+        "High engagement density": 0.08,
         "Very few profile pics": 0.08,
-        "High likes, few matches": 0.10,
-        "Excessive app usage": 0.08,
-        "Very few mutual matches": 0.06,
+        "High likes, few matches": 0.15,
+        "Excessive app usage": 0.05,
+        "Very few mutual matches": 0.03,
     }
 
-    # Each component contributes score*weight*100; allow exceeding 100 before final clamp
+    # Normalize out of 100 based on weights
     risk_components = {name: component_scores[name] * component_weights.get(name, 0.0) * 100.0 for name in component_scores}
     weighted = sum(risk_components.values())
     risk = round(min(100.0, max(0.0, weighted)), 1)
+    
+    # Sort top flags that actually contributed meaningfully (> 0.5 pts)
     top_flags = sorted(((name, value) for name, value in risk_components.items() if value > 0.5), key=lambda pair: -pair[1])[:4]
     return risk, top_flags
 
@@ -346,13 +355,39 @@ def scan_input(
         artifacts.feature_names,
         artifacts.num_cols,
         artifacts.scaler,
-        artifacts.pca,
     )
 
+    # 1. Get real Machine Learning probabilities
     model_probs = {name: float(model.predict_proba(vector)[0][1]) for name, model in artifacts.models.items()}
+    
+    # 2. Count how many models triggered their specific thresholds
     ml_votes = sum(1 for name, prob in model_probs.items() if prob >= artifacts.thresholds.get(name, 0.40))
-    behavioral_score, top_flags = behavioral_risk(raw_input, artifacts.population_stats)
-    final_verdict = "CATFISH" if behavioral_score >= 30.0 else "GENUINE"
+    
+    # 3. Calculate average ML probability
+    avg_ml_prob = sum(model_probs.values()) / len(model_probs) if model_probs else 0.0
+    
+    # 4. Get behavioral heuristic flags for explainability
+    heuristic_score, top_flags = behavioral_risk(raw_input, artifacts.population_stats)
+    
+    # 5. Blend the score
+    # Use a maximum function so that if EITHER the ML models are extremely confident
+    # OR the heuristic rules detect a physically impossible anomaly, the score reflects it.
+    ml_score = avg_ml_prob * 100.0
+    
+    # If the user is doing physically impossible things (heuristic > 70), trust the heuristic.
+    # Otherwise, trust the ML models predominantly.
+    if heuristic_score > 70.0:
+        blended_score = max(ml_score, heuristic_score)
+    else:
+        blended_score = (ml_score * 0.8) + (heuristic_score * 0.2)
+
+    behavioral_score = round(min(100.0, max(0.0, blended_score)), 1)
+    
+    # 6. Final verdict
+    if ml_votes >= (len(model_probs) / 2) or behavioral_score >= 60.0:
+        final_verdict = "CATFISH"
+    else:
+        final_verdict = "GENUINE"
 
     return {
         "vector": vector,
@@ -433,7 +468,6 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     Dict[str, float],
     Dict[str, float],
     RobustScaler,
-    PCA,
     Dict[str, Any],
     Dict[str, float],
     pd.DataFrame,
@@ -486,23 +520,17 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     importance_model.fit(train_resampled_raw, y_train_resampled_raw)
     feature_importances = dict(zip(feature_names, importance_model.feature_importances_))
 
-    # Apply PCA
-    print("Applying PCA...")
-    pca = PCA(n_components=0.95, random_state=42)
-    x_train_pca = pca.fit_transform(x_train_arr)
-    x_test_pca = pca.transform(x_test_arr)
-
-    print("Balancing PCA data with SMOTE-Tomek...")
-    train_resampled, y_train_resampled = SMOTETomek(random_state=42).fit_resample(x_train_pca, y_train_arr)
+    print("Balancing data with SMOTE-Tomek...")
+    train_resampled, y_train_resampled = SMOTETomek(random_state=42).fit_resample(x_train_arr, y_train_arr)
 
     print("Training and tuning models...")
     models = train_models(train_resampled, y_train_resampled)
     # Wrap estimators in a lightweight callable wrapper so the saved artifacts
     # expose consistent `predict_proba` and `predict` methods and remain pickleable.
     models = {name: ModelFunction(m) for name, m in models.items()}
-    thresholds = find_thresholds(models, x_test_pca, y_test_arr)
+    thresholds = find_thresholds(models, x_test_arr, y_test_arr)
 
-    leaderboard = _prepare_training_table(models, thresholds, x_test_pca, y_test_arr)
+    leaderboard = _prepare_training_table(models, thresholds, x_test_arr, y_test_arr)
     model_metrics = leaderboard.reset_index().copy()
 
     population_stats = build_population_stats(df)
@@ -559,7 +587,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         if fi_items:
             names, vals = zip(*fi_items)
             plt.figure(figsize=(10, max(4, len(names) * 0.25)))
-            sns.barplot(x=list(vals), y=list(names), palette="viridis")
+            sns.barplot(x=list(vals), y=list(names), hue=list(names), palette="viridis", legend=False)
             plt.title("Feature Importances")
             plt.tight_layout()
             plt.savefig(plot_dir / "feature_importances.png", dpi=150)
@@ -568,7 +596,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         # ROC curves for each model
         for name, model in models.items():
             try:
-                probs = model.predict_proba(x_test_pca)[:, 1]
+                probs = model.predict_proba(x_test_arr)[:, 1]
                 fpr, tpr, _ = roc_curve(y_test_arr, probs)
                 plt.figure(figsize=(6, 6))
                 plt.plot(fpr, tpr, label=f"{name} (AUC={roc_auc_score(y_test_arr, probs):.3f})")
@@ -587,7 +615,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         # Model probability distributions
         for name, model in models.items():
             try:
-                probs = model.predict_proba(x_test_pca)[:, 1]
+                probs = model.predict_proba(x_test_arr)[:, 1]
                 plt.figure(figsize=(8, 4))
                 sns.histplot(probs[y_test_arr == 0], color="C0", label="genuine", stat="density", kde=True, binwidth=0.02)
                 sns.histplot(probs[y_test_arr == 1], color="C1", label="catfish", stat="density", kde=True, binwidth=0.02)
@@ -627,7 +655,6 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         genuine_medians_raw,
         catfish_medians_raw,
         scaler,
-        pca,
         models,
         thresholds,
         leaderboard,
@@ -658,7 +685,6 @@ def load_artifacts() -> DetectorArtifacts:
         genuine_medians_raw,
         catfish_medians_raw,
         scaler,
-        pca,
         models,
         thresholds,
         leaderboard,
@@ -684,7 +710,6 @@ def load_artifacts() -> DetectorArtifacts:
         genuine_medians_raw={key: float(value) for key, value in genuine_medians_raw.items()},
         catfish_medians_raw={key: float(value) for key, value in catfish_medians_raw.items()},
         scaler=scaler,
-        pca=pca,
         thresholds=thresholds,
         models=models,
         feature_importances=feature_importances,

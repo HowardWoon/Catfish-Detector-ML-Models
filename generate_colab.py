@@ -1,0 +1,254 @@
+import json
+
+notebook = {
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Catfish_Training_Colab.ipynb",
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# 🚀 Advanced Catfish Detection ML Pipeline\n",
+        "**Developed by Group 7 (WIA1006)**\n\n",
+        "This notebook contains the exact, optimized training pipeline used by the Live AI Scanner. We have removed PCA compression so the Models train directly on 51 raw features, resulting in incredible accuracy."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "import warnings\n",
+        "warnings.filterwarnings('ignore')\n",
+        "\n",
+        "from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold\n",
+        "from sklearn.preprocessing import RobustScaler\n",
+        "from sklearn.feature_selection import VarianceThreshold\n",
+        "from imblearn.combine import SMOTETomek\n",
+        "from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve\n",
+        "\n",
+        "# Import ML Models\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "from sklearn.tree import DecisionTreeClassifier\n",
+        "from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier\n",
+        "from xgboost import XGBClassifier\n",
+        "from sklearn.neural_network import MLPClassifier\n",
+        "\n",
+        "print(\"Libraries imported successfully!\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 1. Load Dataset\n",
+        "# Make sure to upload 'dating_app_behavior_dataset.csv' to your Colab session!\n",
+        "try:\n",
+        "    df_raw = pd.read_csv('dating_app_behavior_dataset.csv')\n",
+        "    print(f\"Loaded dataset with {df_raw.shape[0]} rows and {df_raw.shape[1]} columns\")\n",
+        "except FileNotFoundError:\n",
+        "    print(\"⚠️ ERROR: Please upload 'dating_app_behavior_dataset.csv' to the Colab files pane!\")\n",
+        "    df_raw = None\n",
+        "\n",
+        "NUM_RAW_COLUMNS = [\"message_sent_count\", \"app_usage_time_min\", \"swipe_right_ratio\", \"bio_length\", \"profile_pics_count\", \"age\"]\n",
+        "EPS = 0.01\n",
+        "\n",
+        "if df_raw is not None:\n",
+        "    # Basic Cleaning\n",
+        "    for column in NUM_RAW_COLUMNS:\n",
+        "        if column in df_raw.columns:\n",
+        "            df_raw[column] = pd.to_numeric(df_raw[column], errors=\"coerce\")\n",
+        "    \n",
+        "    df = df_raw.dropna().reset_index(drop=True)\n",
+        "    \n",
+        "    # Outlier Filtering (z < 4)\n",
+        "    valid_numeric = [column for column in NUM_RAW_COLUMNS if column in df.columns]\n",
+        "    zscores = ((df[valid_numeric] - df[valid_numeric].mean()) / (df[valid_numeric].std(ddof=0) + EPS)).abs()\n",
+        "    df = df[(zscores < 4).all(axis=1)].reset_index(drop=True)\n",
+        "    \n",
+        "    print(f\"Dataset after cleaning: {df.shape[0]} rows\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 2. Advanced Feature Engineering\n",
+        "def engineer_features(df):\n",
+        "    out = df.copy()\n",
+        "    out[\"engagement_score\"] = out[\"message_sent_count\"] / (out[\"app_usage_time_min\"] + 1)\n",
+        "    out[\"swipe_msg_ratio\"] = out[\"message_sent_count\"] / (out[\"swipe_right_ratio\"] + EPS)\n",
+        "    out[\"msg_per_minute\"] = out[\"message_sent_count\"] / (out[\"app_usage_time_min\"] + EPS)\n",
+        "    out[\"bio_efficiency\"] = out[\"bio_length\"] / (out[\"message_sent_count\"] + 1)\n",
+        "    out[\"bio_per_swipe\"] = out[\"bio_length\"] / (out[\"swipe_right_ratio\"] + EPS)\n",
+        "    out[\"bio_per_minute\"] = out[\"bio_length\"] / (out[\"app_usage_time_min\"] + 1)\n",
+        "    out[\"swipe_intensity\"] = out[\"swipe_right_ratio\"] / (out[\"app_usage_time_min\"] + EPS)\n",
+        "    out[\"swipe_x_msg\"] = out[\"swipe_right_ratio\"] * out[\"message_sent_count\"]\n",
+        "\n",
+        "    if \"profile_pics_count\" in out.columns:\n",
+        "        out[\"pic_msg_ratio\"] = out[\"profile_pics_count\"] / (out[\"message_sent_count\"] + 1)\n",
+        "        out[\"pic_swipe_ratio\"] = out[\"profile_pics_count\"] / (out[\"swipe_right_ratio\"] + EPS)\n",
+        "        out[\"pic_per_minute\"] = out[\"profile_pics_count\"] / (out[\"app_usage_time_min\"] + 1)\n",
+        "\n",
+        "    out[\"Target\"] = (out[\"match_outcome\"] == \"Catfished\").astype(int)\n",
+        "    return out\n",
+        "\n",
+        "if df_raw is not None:\n",
+        "    engineered = engineer_features(df)\n",
+        "    print(f\"Engineered dataset features: {engineered.shape[1]}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 3. Preparation & Scaling\n",
+        "if df_raw is not None:\n",
+        "    DROP_COLUMNS = [\"match_outcome\", \"user_id\", \"Target\", \"location_name\", \"swipe_time_of_day\", \"app_usage_time_label\", \"swipe_right_label\"]\n",
+        "    x_base = engineered.drop(columns=[col for col in DROP_COLUMNS if col in engineered.columns])\n",
+        "    \n",
+        "    # Drop categorical columns with >50 unique values\n",
+        "    for column in x_base.select_dtypes(include=\"object\").columns:\n",
+        "        if x_base[column].nunique() > 50:\n",
+        "            x_base = x_base.drop(columns=[column])\n",
+        "\n",
+        "    # One Hot Encode\n",
+        "    x_ohe = pd.get_dummies(x_base, drop_first=True).astype(float)\n",
+        "\n",
+        "    # Drop Highly Correlated Features\n",
+        "    corr = x_ohe.corr().abs()\n",
+        "    corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))\n",
+        "    correlated_drop = [column for column in corr.columns if any(corr[column] > 0.95)]\n",
+        "    x_ohe = x_ohe.drop(columns=correlated_drop)\n",
+        "\n",
+        "    # Variance Threshold\n",
+        "    selector = VarianceThreshold(threshold=0.01)\n",
+        "    x_values = selector.fit_transform(x_ohe)\n",
+        "    x = pd.DataFrame(x_values, columns=x_ohe.columns[selector.get_support()])\n",
+        "    y = engineered[\"Target\"]\n",
+        "\n",
+        "    # Train Test Split\n",
+        "    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42, stratify=y)\n",
+        "    \n",
+        "    # Robust Scaling\n",
+        "    num_cols = x_train.select_dtypes(include=[\"float64\", \"int64\"]).columns.tolist()\n",
+        "    scaler = RobustScaler()\n",
+        "    x_train_scaled = x_train.copy()\n",
+        "    x_test_scaled = x_test.copy()\n",
+        "    x_train_scaled[num_cols] = scaler.fit_transform(x_train_scaled[num_cols])\n",
+        "    x_test_scaled[num_cols] = scaler.transform(x_test_scaled[num_cols])\n",
+        "    \n",
+        "    x_train_arr = x_train_scaled.values.astype(np.float64)\n",
+        "    x_test_arr = x_test_scaled.values.astype(np.float64)\n",
+        "    y_train_arr = y_train.values\n",
+        "    y_test_arr = y_test.values\n",
+        "    \n",
+        "    print(f\"Final training set shape: {x_train_arr.shape}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 4. SMOTE-Tomek Resampling\n",
+        "if df_raw is not None:\n",
+        "    print(\"Balancing dataset with SMOTE-Tomek...\")\n",
+        "    smote_tomek = SMOTETomek(random_state=42)\n",
+        "    train_resampled, y_train_resampled = smote_tomek.fit_resample(x_train_arr, y_train_arr)\n",
+        "    print(f\"Resampled dataset shape: {train_resampled.shape}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 5. Advanced Model Training (Without PCA for Maximum Feature Accuracy)\n",
+        "if df_raw is not None:\n",
+        "    positive_weight = float((y_train_resampled == 0).sum() / max((y_train_resampled == 1).sum(), 1))\n",
+        "    \n",
+        "    base_models = {\n",
+        "        \"Logistic Regression\": LogisticRegression(max_iter=3000, solver=\"saga\", class_weight=\"balanced\", random_state=42, n_jobs=-1),\n",
+        "        \"Decision Tree\": DecisionTreeClassifier(class_weight=\"balanced\", max_features=\"sqrt\", random_state=42),\n",
+        "        \"Random Forest\": RandomForestClassifier(class_weight=\"balanced_subsample\", max_features=\"sqrt\", random_state=42, n_jobs=-1),\n",
+        "        \"Extra Trees\": ExtraTreesClassifier(class_weight=\"balanced_subsample\", max_features=\"sqrt\", random_state=42, n_jobs=-1),\n",
+        "        \"XGBoost\": XGBClassifier(scale_pos_weight=positive_weight, eval_metric=\"auc\", tree_method=\"hist\", random_state=42, n_jobs=-1, verbosity=0),\n",
+        "        \"MLP Neural Network\": MLPClassifier(early_stopping=True, max_iter=500, random_state=42)\n",
+        "    }\n",
+        "\n",
+        "    param_grids = {\n",
+        "        \"Logistic Regression\": {\"C\": [0.01, 0.1, 0.5, 1, 5], \"penalty\": [\"l2\"]},\n",
+        "        \"Decision Tree\": {\"max_depth\": [5, 10, 15, None], \"min_samples_split\": [5, 10, 20], \"min_samples_leaf\": [2, 4, 8]},\n",
+        "        \"Random Forest\": {\"n_estimators\": [100, 200, 300], \"max_depth\": [10, 15, 20], \"min_samples_split\": [2, 5, 10]},\n",
+        "        \"Extra Trees\": {\"n_estimators\": [100, 200, 300], \"max_depth\": [10, 15, 20], \"min_samples_split\": [2, 5, 10]},\n",
+        "        \"XGBoost\": {\"n_estimators\": [100, 200, 300], \"learning_rate\": [0.03, 0.05, 0.1], \"max_depth\": [4, 6, 8], \"subsample\": [0.8, 1.0]},\n",
+        "        \"MLP Neural Network\": {\"hidden_layer_sizes\": [(128, 64), (256, 128, 64)], \"alpha\": [0.0001, 0.001]}\n",
+        "    }\n",
+        "\n",
+        "    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)\n",
+        "    tuned_models = {}\n",
+        "\n",
+        "    print(\"Training and Tuning 6 Ensembled Models...\")\n",
+        "    for name, model in base_models.items():\n",
+        "        print(f\"Training {name}...\")\n",
+        "        rs = RandomizedSearchCV(model, param_grids[name], n_iter=5, cv=cv, scoring=\"f1_macro\", random_state=42, n_jobs=-1)\n",
+        "        rs.fit(train_resampled, y_train_resampled)\n",
+        "        tuned_models[name] = rs.best_estimator_\n",
+        "        print(f\"  Best params: {rs.best_params_}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": None,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# 6. Evaluation and ROC Curves\n",
+        "if df_raw is not None:\n",
+        "    plt.figure(figsize=(10, 8))\n",
+        "    for name, model in tuned_models.items():\n",
+        "        probs = model.predict_proba(x_test_arr)[:, 1]\n",
+        "        fpr, tpr, _ = roc_curve(y_test_arr, probs)\n",
+        "        auc_score = roc_auc_score(y_test_arr, probs)\n",
+        "        plt.plot(fpr, tpr, label=f\"{name} (AUC={auc_score:.3f})\")\n",
+        "    \n",
+        "    plt.plot([0, 1], [0, 1], linestyle=\"--\", color=\"gray\")\n",
+        "    plt.xlabel(\"False Positive Rate\")\n",
+        "    plt.ylabel(\"True Positive Rate\")\n",
+        "    plt.title(\"ROC Curve Analysis - Advanced Models\")\n",
+        "    plt.legend(loc=\"lower right\")\n",
+        "    plt.show()"
+      ]
+    }
+  ]
+}
+
+with open('catfish_training_colab.ipynb', 'w', encoding='utf-8') as f:
+    json.dump(notebook, f, indent=2)

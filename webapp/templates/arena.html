@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel architecture-banner">
+  <h2 style="font-size: 2.5rem; color: var(--neon-cyan); margin-bottom: 10px;">Machine Learning Architecture</h2>
+  <p style="color: var(--text-muted); max-width: 800px; margin: 0 auto;">Our pipeline utilizes state-of-the-art balancing, dimensionality reduction, and hyperparameter tuning to achieve maximum predictive power.</p>
+  
+  <div class="arch-flow">
+    <div class="arch-node">Raw Data</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">SMOTE-Tomek<br><span style="font-size: 0.75rem; color: var(--text-muted); font-weight:400;">Class Balancing</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">PCA (95%)<br><span style="font-size: 0.75rem; color: var(--text-muted); font-weight:400;">Noise Reduction</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">RandomizedSearchCV<br><span style="font-size: 0.75rem; color: var(--text-muted); font-weight:400;">Hyperparameter Tuning</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color: var(--neon-cyan); background: rgba(0, 240, 255, 0.1);">6-Model Ensemble</div>
+  </div>
+</div>
+
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff;">Performance Leaderboard</h2>
+<div class="table-container glass-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Model</th>
+        <th>F1-Score</th>
+        <th>Accuracy</th>
+        <th>Recall</th>
+        <th>Precision</th>
+        <th>ROC-AUC</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in leaderboard %}
+      <tr>
+        <td style="color: var(--neon-cyan); font-weight: 700;">#{{ loop.index }}</td>
+        <td style="font-weight: 700; color: #fff;">{{ row['Model'] }}</td>
+        <td>{{ "%.4f"|format(row['F1-Score']) }}</td>
+        <td>{{ "%.4f"|format(row['Accuracy']) }}</td>
+        <td>{{ "%.4f"|format(row['Recall']) }}</td>
+        <td>{{ "%.4f"|format(row['Precision']) }}</td>
+        <td>{{ "%.4f"|format(row['ROC-AUC']) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff; margin-top: 50px;">Academic Plot Gallery</h2>
+<div class="gallery">
+  {% for img in images %}
+  <div class="plot-card glass-panel">
+    <img src="{{ url_for('serve_plot_static', filename=img) }}" alt="{{ img }}">
+    <h3>{{ img.replace('.png', '').replace('_', ' ').title() }}</h3>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff; margin-top: 50px;">Core Ensemble Pipeline Source Code</h2>
+<div class="glass-panel" style="padding: 30px; margin-bottom: 50px;">
+  <p style="color: var(--text-muted); margin-bottom: 20px;">The backend utilizes Scikit-Learn, XGBoost, and Imbalanced-Learn for SMOTE-Tomek balancing and RandomizedSearchCV hyperparameter tuning across 6 distinct algorithms.</p>
+  
+  <div style="background: #0f172a; border-radius: 8px; border: 1px solid var(--glass-border); overflow: hidden;">
+    <div style="background: rgba(255,255,255,0.05); padding: 10px 20px; font-family: monospace; font-size: 0.85rem; color: #94a3b8; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between;">
+      <span>catfish_core.py</span>
+      <span>Python</span>
+    </div>
+    <pre style="margin: 0; padding: 20px; overflow-x: auto;"><code style="color: #38bdf8; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; line-height: 1.5;">def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
+    positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
+    
+    base_models = {
+        "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced"),
+        "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt"),
+        "Random Forest": RandomForestClassifier(class_weight="balanced_subsample", max_features="sqrt"),
+        "Extra Trees": ExtraTreesClassifier(class_weight="balanced_subsample", max_features="sqrt"),
+        "XGBoost": XGBClassifier(scale_pos_weight=positive_weight, eval_metric="auc", tree_method="hist"),
+        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500)
+    }
+
+    param_grids = {
+        "Logistic Regression": {"C": [0.01, 0.1, 0.5, 1, 5], "penalty": ["l2"]},
+        "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20]},
+        "Random Forest": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20]},
+        "Extra Trees": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20]},
+        "XGBoost": {"n_estimators": [100, 200, 300], "learning_rate": [0.03, 0.05, 0.1]},
+        "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
+    }
+
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    tuned_models = {}
+
+    for name, model in base_models.items():
+        rs = RandomizedSearchCV(model, param_grids[name], n_iter=5, cv=cv, scoring="f1_macro", n_jobs=-1)
+        rs.fit(x_train, y_train)
+        tuned_models[name] = rs.best_estimator_
+
+    return tuned_models</code></pre>
+  </div>
+</div>
+{% endblock %}

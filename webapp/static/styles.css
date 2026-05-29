@@ -66,8 +66,7 @@ h1, h2, h3, h4, .brand { font-family: 'Outfit', sans-serif; }
   background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
 }
 
-.hero-copy h1 { font-size: clamp(3rem, 5vw, 4.5rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; 
-  background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-copy h1 { font-size: clamp(3rem, 5vw, 4.5rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; color: #fff; text-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
 .hero-copy .lede { font-size: 1.1rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 30px; }
 
 .btn {
@@ -85,9 +84,9 @@ h1, h2, h3, h4, .brand { font-family: 'Outfit', sans-serif; }
 .stat-card strong { font-size: 2.5rem; font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--neon-cyan); }
 
 nav.page-nav { display: flex; gap: 16px; margin-bottom: 40px; justify-content: center; flex-wrap: wrap; }
-.nav-link { padding: 12px 30px; border-radius: 99px; text-decoration: none; color: var(--text-muted); font-weight: 600; font-family: 'Outfit', sans-serif; border: 1px solid transparent; }
-.nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
-.nav-link.active { background: rgba(139, 92, 246, 0.15); color: var(--neon-cyan); border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
+.nav-link { padding: 12px 30px; border-radius: 99px; text-decoration: none; color: #ffffff; font-weight: 600; font-family: 'Outfit', sans-serif; border: 1px solid transparent; text-shadow: none; }
+.nav-link:hover { color: #ffffff; background: rgba(255,255,255,0.05); border: 1px solid blue; }
+.nav-link.active { background: rgba(0, 0, 255, 0.1); color: #ffffff; border: 1px solid blue; box-shadow: none; text-shadow: none; }
 
 /* Layouts */
 .layout { display: grid; grid-template-columns: 1fr; gap: 30px; }
@@ -125,6 +124,49 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .bar-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 99px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); transition: width 0.5s ease-out; }
 .flag-fill { background: linear-gradient(90deg, var(--warning), var(--danger)); box-shadow: 0 0 10px var(--danger); }
+
+/* Gauge & Progress */
+.gauge-container {
+  height: 8px;
+  background: var(--glass-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 15px;
+}
+.gauge-fill {
+  height: 100%;
+  background: var(--neon-cyan);
+  width: 0%;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Radar Sweep Animation */
+.radar-sweep {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(0, 240, 255, 0.4) 100%);
+  border-radius: 50%;
+  animation: radar-spin 3s linear infinite;
+  pointer-events: none;
+}
+.radar-grid {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center center;
+  pointer-events: none;
+}
+@keyframes radar-spin {
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 
 /* Models Page */
 .architecture-banner { text-align: center; padding: 40px; margin-bottom: 40px; }

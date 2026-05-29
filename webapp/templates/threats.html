@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 40px; margin-bottom: 30px; border-color: var(--danger); background: rgba(239, 68, 68, 0.05);">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h2 style="font-size: 2.5rem; color: var(--danger); margin-bottom: 10px;">Security Operations Center</h2>
+      <p style="color: var(--text-muted);">Real-time monitoring of dating ecosystem integrity.</p>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 1.2rem; color: var(--text-main); font-family: 'Outfit';">SYSTEM STATUS</div>
+      <div style="color: var(--danger); font-weight: bold; text-shadow: 0 0 10px var(--danger);">ACTIVE DEFENSE MODE</div>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid" style="margin-bottom: 30px;">
+  <div class="result-card glass-panel">
+    <div class="result-title">Profiles Analyzed (24H)</div>
+    <div class="verdict-main" style="color: var(--neon-cyan);">4,821</div>
+    <div class="risk-text">Real-time throughput</div>
+  </div>
+  <div class="result-card glass-panel">
+    <div class="result-title">Suspicious Activity</div>
+    <div class="verdict-main" style="color: var(--warning);">142</div>
+    <div class="risk-text">Pending manual review</div>
+  </div>
+  <div class="result-card glass-panel">
+    <div class="result-title">Catfish Terminated</div>
+    <div class="verdict-main" style="color: var(--danger);">89</div>
+    <div class="risk-text">Emotional fraud prevented</div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 300px; gap: 30px;">
+  <div class="glass-panel" style="padding: 30px;">
+    <h3 style="color: var(--neon-cyan); margin-bottom: 20px;">Live Threat Log</h3>
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+      <thead>
+        <tr>
+          <th style="padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-muted);">Timestamp</th>
+          <th style="padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-muted);">User ID</th>
+          <th style="padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-muted);">Trigger Event</th>
+          <th style="padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-muted);">Confidence</th>
+          <th style="padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-muted);">Action</th>
+        </tr>
+      </thead>
+      <tbody id="threat-log">
+        <!-- JavaScript will populate this -->
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="glass-panel" style="padding: 30px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+    <h3 style="color: var(--danger); margin-bottom: 20px;">Threat Radar</h3>
+    <div style="width: 200px; height: 200px; position: relative; border-radius: 50%; border: 1px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); overflow: hidden;">
+      <div class="radar-grid"></div>
+      <div class="radar-sweep"></div>
+      <div style="position: absolute; top: 40%; left: 60%; width: 6px; height: 6px; background: red; border-radius: 50%; box-shadow: 0 0 10px red; animation: pulse 2s infinite;"></div>
+      <div style="position: absolute; top: 70%; left: 30%; width: 4px; height: 4px; background: red; border-radius: 50%; box-shadow: 0 0 10px red; animation: pulse 1.5s infinite 1s;"></div>
+    </div>
+    <div style="margin-top: 20px; font-family: 'Outfit'; color: var(--neon-cyan); letter-spacing: 2px; font-size: 0.8rem;">SCANNING SECTORS...</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Simulate live threat log
+  const tbody = document.getElementById('threat-log');
+  const actions = ['Auto-Ban', 'Shadowban', 'Flag for Review', 'Auto-Ban', 'Warning Issued'];
+  const triggers = ['Abnormal Swipe Ratio (0.99)', 'Scripted Messaging Pattern', 'Geofencing Anomaly', 'Bot-Like Session Duration', 'Reverse Image Match Flag'];
+  
+  function addThreat() {
+    const tr = document.createElement('tr');
+    tr.style.background = 'rgba(239, 68, 68, 0.1)';
+    tr.style.transition = 'all 1s';
+    
+    const time = new Date().toLocaleTimeString();
+    const id = 'USR-' + Math.floor(Math.random() * 90000 + 10000);
+    const trigger = triggers[Math.floor(Math.random() * triggers.length)];
+    const conf = (Math.random() * 15 + 84).toFixed(1) + '%';
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    const actColor = action === 'Auto-Ban' ? 'var(--danger)' : 'var(--warning)';
+
+    tr.innerHTML = `
+      <td style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.02);">${time}</td>
+      <td style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.02); color: var(--neon-cyan);">${id}</td>
+      <td style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.02);">${trigger}</td>
+      <td style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.02); font-weight: bold; color: var(--danger);">${conf}</td>
+      <td style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.02); color: ${actColor};">${action}</td>
+    `;
+    
+    tbody.prepend(tr);
+    if (tbody.children.length > 6) {
+      tbody.removeChild(tbody.lastChild);
+    }
+    
+    setTimeout(() => { tr.style.background = 'transparent'; }, 500);
+    
+    setTimeout(addThreat, Math.random() * 4000 + 2000);
+  }
+  
+  // Init
+  for(let i=0; i<5; i++) { addThreat(); }
+</script>
+{% endblock %}

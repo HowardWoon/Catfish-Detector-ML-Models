@@ -45,3 +45,4 @@ artifacts/plots/
 
 # Logs
 *.log
+.vercel

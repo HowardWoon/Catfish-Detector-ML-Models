@@ -4,7 +4,7 @@ import time
 import sys
 
 print("\n" + "="*60)
-print("⏳  LOADING MACHINE LEARNING MODELS... PLEASE WAIT!")
+print("[LOADING] MACHINE LEARNING MODELS... PLEASE WAIT!")
 print("This may take 10-20 seconds depending on your PC.")
 print("="*60 + "\n")
 sys.stdout.flush()

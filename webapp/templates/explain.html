@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 40px; margin-bottom: 40px;">
+  <h2 style="font-size: 2.5rem; color: var(--neon-cyan); margin-bottom: 10px;">AI Explainability Center</h2>
+  <p style="color: var(--text-muted); max-width: 800px;">Transparency is critical in cybersecurity. We do not use "Black Box" models. This dashboard reveals exactly which behavioral markers our models use to classify fraudulent profiles.</p>
+</div>
+
+<div class="layout" style="grid-template-columns: 1fr 1fr;">
+  <div class="glass-panel" style="padding: 30px;">
+    <h3 style="color: var(--neon-pink); font-size: 1.5rem; margin-bottom: 20px;">Top Fraud Indicators (Global)</h3>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">The XGBoost and Random Forest algorithms identified these specific metrics as the most dangerous patterns.</p>
+    
+    <div class="bar-list">
+      <div class="bar-item">
+        <div class="bar-item-header"><strong>High Swipe Right Ratio</strong><span style="color: var(--danger);">Critical</span></div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Bot networks and scammers swipe right indiscriminately to maximize match yield.</p>
+      </div>
+      <div class="bar-item">
+        <div class="bar-item-header"><strong>Extreme App Usage Time</strong><span style="color: var(--danger);">Critical</span></div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Abnormal session durations heavily correlate with automated scripts.</p>
+      </div>
+      <div class="bar-item">
+        <div class="bar-item-header"><strong>Low Mutual Match / Sent Message Ratio</strong><span style="color: var(--warning);">High</span></div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Spamming messages without securing mutual interaction indicates copy-paste scams.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-panel" style="padding: 30px; text-align: center;">
+    <h3 style="color: var(--neon-cyan); font-size: 1.5rem; margin-bottom: 20px;">Feature Importance Architecture</h3>
+    <img src="{{ url_for('serve_plot_static', filename='feature_importances.png') }}" style="width: 100%; max-width: 500px; border-radius: 12px; border: 1px solid var(--glass-border); box-shadow: 0 0 30px rgba(0,0,0,0.5);" alt="Feature Importance Plot">
+    <p style="color: var(--text-muted); margin-top: 15px; font-size: 0.9rem;">Empirical mapping of the behavioral vector weights utilized in our final ensemble.</p>
+  </div>
+</div>
+{% endblock %}
