@@ -2,22 +2,22 @@
 
 {% block content %}
 <main class="layout single-column">
-  <section class="panel">
-    <div class="panel-head">
+  <section class="glass-panel" style="padding: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
       <div>
-        <h2>Notebook Code</h2>
-        <span>{{ notebook_cells|length }} cells rendered from the assignment notebook</span>
+        <h2 style="font-size: 2rem; color: var(--neon-cyan); margin-bottom: 8px;">Jupyter Source Code</h2>
+        <span style="color: var(--text-muted);">{{ notebook_cells|length }} cells rendered dynamically from the assignment notebook</span>
       </div>
-      <div class="tabs">
-        <button class="tab active" data-tab="all">All Cells</button>
-        <button class="tab" data-tab="code">Code Only</button>
+      <div class="tabs" style="display: flex; gap: 12px;">
+        <button class="btn btn-primary tab active" data-tab="all">All Cells</button>
+        <button class="btn tab" data-tab="code">Code Only</button>
       </div>
     </div>
-    <div class="cells" id="notebook-cells">
+    <div class="cells" id="notebook-cells" style="display: grid; gap: 16px;">
       {% for cell in notebook_cells %}
-      <details class="cell" data-kind="{{ cell.type }}" {% if cell.type == 'code' %}open{% endif %}>
-        <summary>Cell {{ cell.index }} | {{ cell.title }}</summary>
-        <pre>{{ cell.source | e }}</pre>
+      <details class="cell" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden;" data-kind="{{ cell.type }}" {% if cell.type == 'code' %}open{% endif %}>
+        <summary style="padding: 16px; cursor: pointer; font-weight: 600; color: var(--text-main); background: rgba(255,255,255,0.02);">Cell {{ cell.index }} | {{ cell.title }}</summary>
+        <pre style="margin: 0; padding: 20px; overflow: auto; background: #000; color: var(--neon-cyan); font-size: 0.9rem;">{{ cell.source | e }}</pre>
       </details>
       {% endfor %}
     </div>
@@ -26,5 +26,21 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script>
+  // Quick tab logic for notebook page
+  const tabButtons = Array.from(document.querySelectorAll('.tab'));
+  const cells = Array.from(document.querySelectorAll('.cell'));
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      tabButtons.forEach((other) => {
+        other.classList.toggle('btn-primary', other === button);
+      });
+      const mode = button.dataset.tab;
+      cells.forEach((cell) => {
+        const isCode = cell.dataset.kind === 'code';
+        cell.style.display = mode === 'all' || (mode === 'code' && isCode) ? 'block' : 'none';
+      });
+    });
+  });
+</script>
 {% endblock %}

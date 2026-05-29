@@ -2,29 +2,35 @@
 
 {% block content %}
 <main class="layout single-column">
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Downloads</h2>
-        <span>Cached model bundle and assignment report</span>
-      </div>
+  <section class="glass-panel" style="padding: 40px;">
+    <div style="margin-bottom: 30px;">
+      <h2 style="font-size: 2rem; color: var(--neon-cyan); margin-bottom: 8px;">Model Assets & Downloads</h2>
+      <span style="color: var(--text-muted);">Cached model bundles, notebooks, and reports</span>
     </div>
 
-    <div class="download-grid">
-      <article class="download-card">
+    <div class="download-grid" style="display: grid; gap: 20px;">
+      <article class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 24px;">
         <div>
-          <h3>Cached Model Bundle</h3>
-          <p>Download the cached <code>detector_bundle.pkl</code> used by the scanner and validation routes.</p>
+          <h3 style="color: var(--text-main); margin-bottom: 8px;">Cached Model Bundle</h3>
+          <p style="color: var(--text-muted);">Download the cached <code>detector_bundle.pkl</code> used by the scanner and validation routes.</p>
         </div>
-        <a class="ghost download-link" href="{{ model_bundle_url }}">Download bundle</a>
+        <a class="btn btn-primary" href="{{ model_bundle_url }}">Download Bundle</a>
       </article>
 
-      <article class="download-card">
+      <article class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 24px;">
         <div>
-          <h3>Assignment Report</h3>
-          <p>Download the published report PDF alongside the web app.</p>
+          <h3 style="color: var(--text-main); margin-bottom: 8px;">Assignment Report</h3>
+          <p style="color: var(--text-muted);">Download the published report PDF alongside the web app.</p>
         </div>
-        <a class="ghost download-link" href="{{ report_url }}">Download report</a>
+        <a class="btn" href="{{ report_url }}">Download Report</a>
+      </article>
+      
+      <article class="glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 24px;">
+        <div>
+          <h3 style="color: var(--text-main); margin-bottom: 8px;">Jupyter Notebook</h3>
+          <p style="color: var(--text-muted);">Download the master `.ipynb` notebook file.</p>
+        </div>
+        <a class="btn" href="/download/notebook.ipynb">Download Notebook</a>
       </article>
     </div>
   </section>

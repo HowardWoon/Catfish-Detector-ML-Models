@@ -21,6 +21,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import RobustScaler
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
+from sklearn.decomposition import PCA
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 
 
 class ModelFunction:
@@ -84,6 +86,7 @@ class DetectorArtifacts:
     genuine_medians_raw: Dict[str, float]
     catfish_medians_raw: Dict[str, float]
     scaler: RobustScaler
+    pca: PCA
     thresholds: Dict[str, float]
     models: Dict[str, Any]
     feature_importances: Dict[str, float]
@@ -173,6 +176,7 @@ def build_scanner_input(
     feature_names: List[str],
     num_cols: List[str],
     scaler: RobustScaler,
+    pca: PCA,
 ) -> np.ndarray:
     row = dict(train_medians_raw)
     row.update(raw_values)
@@ -198,86 +202,41 @@ def build_scanner_input(
 
     input_frame = pd.DataFrame([{feature: row.get(feature, 0.0) for feature in feature_names}], columns=feature_names)
     input_frame[num_cols] = scaler.transform(input_frame[num_cols])
-    return input_frame.values
+    return pca.transform(input_frame.values)
 
 
 def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
-    models: Dict[str, Any] = {
-        "Logistic Regression": LogisticRegression(
-            C=0.5,
-            penalty="l2",
-            solver="saga",
-            class_weight="balanced",
-            max_iter=3000,
-            random_state=42,
-            n_jobs=-1,
-        ),
-        "Decision Tree": DecisionTreeClassifier(
-            criterion="gini",
-            max_depth=10,
-            min_samples_split=20,
-            min_samples_leaf=8,
-            max_features="sqrt",
-            class_weight="balanced",
-            random_state=42,
-        ),
-        "Random Forest": RandomForestClassifier(
-            n_estimators=300,
-            max_depth=15,
-            min_samples_split=5,
-            min_samples_leaf=2,
-            max_features="sqrt",
-            class_weight="balanced_subsample",
-            oob_score=True,
-            n_jobs=-1,
-            random_state=42,
-        ),
-        "Extra Trees": ExtraTreesClassifier(
-            n_estimators=300,
-            max_depth=15,
-            min_samples_split=5,
-            min_samples_leaf=2,
-            max_features="sqrt",
-            class_weight="balanced_subsample",
-            n_jobs=-1,
-            random_state=42,
-        ),
-        "XGBoost": XGBClassifier(
-            n_estimators=300,
-            max_depth=6,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            min_child_weight=3,
-            gamma=0.1,
-            reg_alpha=0.1,
-            reg_lambda=1.0,
-            scale_pos_weight=positive_weight,
-            tree_method="hist",
-            eval_metric="auc",
-            random_state=42,
-            verbosity=0,
-        ),
-        "MLP Neural Network": MLPClassifier(
-            hidden_layer_sizes=(256, 128, 64),
-            activation="relu",
-            solver="adam",
-            alpha=0.001,
-            batch_size=256,
-            learning_rate="adaptive",
-            learning_rate_init=0.001,
-            early_stopping=True,
-            validation_fraction=0.1,
-            n_iter_no_change=20,
-            max_iter=500,
-            random_state=42,
-        ),
+    
+    base_models = {
+        "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced", random_state=42, n_jobs=-1),
+        "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
+        "Random Forest": RandomForestClassifier(class_weight="balanced_subsample", max_features="sqrt", random_state=42, n_jobs=-1),
+        "Extra Trees": ExtraTreesClassifier(class_weight="balanced_subsample", max_features="sqrt", random_state=42, n_jobs=-1),
+        "XGBoost": XGBClassifier(scale_pos_weight=positive_weight, eval_metric="auc", tree_method="hist", random_state=42, n_jobs=-1, verbosity=0),
+        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500, random_state=42)
     }
 
-    for model in models.values():
-        model.fit(x_train, y_train)
-    return models
+    param_grids = {
+        "Logistic Regression": {"C": [0.01, 0.1, 0.5, 1, 5], "penalty": ["l2"]},
+        "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20], "min_samples_leaf": [2, 4, 8]},
+        "Random Forest": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20], "min_samples_split": [2, 5, 10]},
+        "Extra Trees": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20], "min_samples_split": [2, 5, 10]},
+        "XGBoost": {"n_estimators": [100, 200, 300], "learning_rate": [0.03, 0.05, 0.1], "max_depth": [4, 6, 8], "subsample": [0.8, 1.0]},
+        "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
+    }
+
+    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    tuned_models = {}
+
+    for name, model in base_models.items():
+        print(f"Tuning {name}...")
+        rs = RandomizedSearchCV(model, param_grids[name], n_iter=5, cv=cv, scoring="f1_macro", random_state=42, n_jobs=-1)
+        rs.fit(x_train, y_train)
+        tuned_models[name] = rs.best_estimator_
+        print(f"  Best params: {rs.best_params_}")
+
+    return tuned_models
 
 
 def find_thresholds(models: Dict[str, Any], x_test: np.ndarray, y_test: np.ndarray) -> Dict[str, float]:
@@ -387,6 +346,7 @@ def scan_input(
         artifacts.feature_names,
         artifacts.num_cols,
         artifacts.scaler,
+        artifacts.pca,
     )
 
     model_probs = {name: float(model.predict_proba(vector)[0][1]) for name, model in artifacts.models.items()}
@@ -473,6 +433,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     Dict[str, float],
     Dict[str, float],
     RobustScaler,
+    PCA,
     Dict[str, Any],
     Dict[str, float],
     pd.DataFrame,
@@ -513,24 +474,35 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     y_train_arr = y_train.values
     y_test_arr = y_test.values
 
-    train_resampled, y_train_resampled = SMOTETomek(random_state=42).fit_resample(x_train_arr, y_train_arr)
-
-    models = train_models(train_resampled, y_train_resampled)
-    # Wrap estimators in a lightweight callable wrapper so the saved artifacts
-    # expose consistent `predict_proba` and `predict` methods and remain pickleable.
-    models = {name: ModelFunction(m) for name, m in models.items()}
-    thresholds = find_thresholds(models, x_test_arr, y_test_arr)
-
+    # Compute Feature Importances on pre-PCA data so Web App displays real feature names
+    print("Computing feature importances on raw data...")
+    train_resampled_raw, y_train_resampled_raw = SMOTETomek(random_state=42).fit_resample(x_train_arr, y_train_arr)
     importance_model = ExtraTreesClassifier(
         n_estimators=200,
         class_weight="balanced",
         n_jobs=-1,
         random_state=42,
     )
-    importance_model.fit(train_resampled, y_train_resampled)
+    importance_model.fit(train_resampled_raw, y_train_resampled_raw)
     feature_importances = dict(zip(feature_names, importance_model.feature_importances_))
 
-    leaderboard = _prepare_training_table(models, thresholds, x_test_arr, y_test_arr)
+    # Apply PCA
+    print("Applying PCA...")
+    pca = PCA(n_components=0.95, random_state=42)
+    x_train_pca = pca.fit_transform(x_train_arr)
+    x_test_pca = pca.transform(x_test_arr)
+
+    print("Balancing PCA data with SMOTE-Tomek...")
+    train_resampled, y_train_resampled = SMOTETomek(random_state=42).fit_resample(x_train_pca, y_train_arr)
+
+    print("Training and tuning models...")
+    models = train_models(train_resampled, y_train_resampled)
+    # Wrap estimators in a lightweight callable wrapper so the saved artifacts
+    # expose consistent `predict_proba` and `predict` methods and remain pickleable.
+    models = {name: ModelFunction(m) for name, m in models.items()}
+    thresholds = find_thresholds(models, x_test_pca, y_test_arr)
+
+    leaderboard = _prepare_training_table(models, thresholds, x_test_pca, y_test_arr)
     model_metrics = leaderboard.reset_index().copy()
 
     population_stats = build_population_stats(df)
@@ -596,7 +568,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         # ROC curves for each model
         for name, model in models.items():
             try:
-                probs = model.predict_proba(x_test_arr)[:, 1]
+                probs = model.predict_proba(x_test_pca)[:, 1]
                 fpr, tpr, _ = roc_curve(y_test_arr, probs)
                 plt.figure(figsize=(6, 6))
                 plt.plot(fpr, tpr, label=f"{name} (AUC={roc_auc_score(y_test_arr, probs):.3f})")
@@ -615,7 +587,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         # Model probability distributions
         for name, model in models.items():
             try:
-                probs = model.predict_proba(x_test_arr)[:, 1]
+                probs = model.predict_proba(x_test_pca)[:, 1]
                 plt.figure(figsize=(8, 4))
                 sns.histplot(probs[y_test_arr == 0], color="C0", label="genuine", stat="density", kde=True, binwidth=0.02)
                 sns.histplot(probs[y_test_arr == 1], color="C1", label="catfish", stat="density", kde=True, binwidth=0.02)
@@ -655,6 +627,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         genuine_medians_raw,
         catfish_medians_raw,
         scaler,
+        pca,
         models,
         thresholds,
         leaderboard,
@@ -685,6 +658,7 @@ def load_artifacts() -> DetectorArtifacts:
         genuine_medians_raw,
         catfish_medians_raw,
         scaler,
+        pca,
         models,
         thresholds,
         leaderboard,
@@ -710,6 +684,7 @@ def load_artifacts() -> DetectorArtifacts:
         genuine_medians_raw={key: float(value) for key, value in genuine_medians_raw.items()},
         catfish_medians_raw={key: float(value) for key, value in catfish_medians_raw.items()},
         scaler=scaler,
+        pca=pca,
         thresholds=thresholds,
         models=models,
         feature_importances=feature_importances,
