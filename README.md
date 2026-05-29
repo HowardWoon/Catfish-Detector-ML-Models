@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/HowardWoon/Catfish-Detector-ML-Models/main/webapp/static/cyber-eye.svg" width="100" alt="Cyber Eye Logo">
   
   # Catfish Detector AI
   **WIA1006 Machine Learning Project • Group 7**
@@ -21,7 +20,7 @@ The **Catfish Detector AI** is an advanced machine learning pipeline and interac
 * **Interactive Live Scanner**: A stunning, real-time web UI that allows users to adjust behavioral sliders and watch the AI models vote on the threat level instantly.
 
 ## 🧠 The Machine Learning Pipeline (V19 CHAMPION)
-Our ultimate [V19 Champion Notebook](WIA1006_Catfish_Group7_V19_Final.ipynb) represents the pinnacle of our optimization:
+Our ultimate V19 Champion Notebook represents the pinnacle of our optimization:
 1. **Dataset Generation**: 50,000 rows of synthetic dating app behavior.
 2. **Feature Engineering**: Calculates `engagement_score`, `swipe_intensity`, `msg_per_minute`, etc.
 3. **Data Balancing**: Utilizes **SMOTE-Tomek** to handle class imbalance, synthetically generating realistic minority class samples while pruning ambiguous Tomek links.
