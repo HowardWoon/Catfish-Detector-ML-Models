@@ -183,14 +183,14 @@ if (sliders.length) {
 const simBtn = document.getElementById('simulate-btn');
 if (simBtn) {
   simBtn.addEventListener('click', () => {
-      // Example of a realistic but clearly manipulative Catfish profile
-      document.getElementById('app_usage_time_min').value = 750; // 12.5 hours
-      document.getElementById('swipe_right_ratio').value = 0.99; // Swiping right on almost everyone
-      document.getElementById('bio_length').value = 5; // Extremely short bio
-      document.getElementById('message_sent_count').value = 850; // Spamming messages
-      document.getElementById('profile_pics_count').value = 1; // Only 1 picture
-      document.getElementById('likes_received').value = 4500; // Getting a ton of likes
-      document.getElementById('mutual_matches').value = 2; // But hardly anyone matches back
+      // Randomized realistic but clearly manipulative Catfish profile
+      document.getElementById('app_usage_time_min').value = Math.floor(Math.random() * (1200 - 500 + 1) + 500); // 500 to 1200
+      document.getElementById('swipe_right_ratio').value = (Math.random() * (1.0 - 0.85) + 0.85).toFixed(2); // 0.85 to 1.0
+      document.getElementById('bio_length').value = Math.floor(Math.random() * (30 - 0 + 1) + 0); // 0 to 30
+      document.getElementById('message_sent_count').value = Math.floor(Math.random() * (2000 - 500 + 1) + 500); // 500 to 2000
+      document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (2 - 1 + 1) + 1); // 1 to 2
+      document.getElementById('likes_received').value = Math.floor(Math.random() * (5000 - 1000 + 1) + 1000); // 1000 to 5000
+      document.getElementById('mutual_matches').value = Math.floor(Math.random() * (5 - 0 + 1) + 0); // 0 to 5
       scan();
     document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.8)';
     setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
@@ -200,15 +200,14 @@ if (simBtn) {
 const genBtn = document.getElementById('genuine-btn');
 if (genBtn) {
   genBtn.addEventListener('click', () => {
-    // Example of a completely normal, healthy Genuine profile based on dataset medians
-    const profile = window.CATFISH_BOOTSTRAP.defaultProfile;
-    document.getElementById('app_usage_time_min').value = profile.app_usage_time_min;
-    document.getElementById('swipe_right_ratio').value = profile.swipe_right_ratio;
-    document.getElementById('bio_length').value = profile.bio_length;
-    document.getElementById('message_sent_count').value = profile.message_sent_count;
-    document.getElementById('profile_pics_count').value = profile.profile_pics_count;
-    document.getElementById('likes_received').value = profile.likes_received;
-    document.getElementById('mutual_matches').value = profile.mutual_matches;
+    // Randomized normal, healthy Genuine profile
+    document.getElementById('app_usage_time_min').value = Math.floor(Math.random() * (300 - 10 + 1) + 10); // 10 to 300
+    document.getElementById('swipe_right_ratio').value = (Math.random() * (0.7 - 0.1) + 0.1).toFixed(2); // 0.1 to 0.7
+    document.getElementById('bio_length').value = Math.floor(Math.random() * (500 - 50 + 1) + 50); // 50 to 500
+    document.getElementById('message_sent_count').value = Math.floor(Math.random() * (200 - 10 + 1) + 10); // 10 to 200
+    document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (9 - 2 + 1) + 2); // 2 to 9
+    document.getElementById('likes_received').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
+    document.getElementById('mutual_matches').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
     scan();
     document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(16, 185, 129, 0.8)';
     setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
