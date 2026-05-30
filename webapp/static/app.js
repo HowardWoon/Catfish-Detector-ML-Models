@@ -111,7 +111,7 @@ function speakWarning() {
   }
 }
 
-async function scan() {
+async function scan(cinematic = false) {
   if (!verdictLabel) return;
   syncOutputs();
   
@@ -120,7 +120,7 @@ async function scan() {
   const resultCont = document.getElementById('result-container');
   const analysisText = document.getElementById('analysis-text');
   
-  if (overlay && resultCont) {
+  if (cinematic && overlay && resultCont) {
     resultCont.style.display = 'none';
     overlay.style.display = 'flex';
     
@@ -175,9 +175,16 @@ async function scan() {
 
 if (sliders.length) {
   applyBootstrapDefaults();
-  sliders.forEach((slider) => slider.addEventListener('input', scan));
+  let debounceTimer;
+  sliders.forEach((slider) => {
+    slider.addEventListener('input', () => {
+      syncOutputs();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => scan(false), 200);
+    });
+  });
   syncOutputs();
-  scan();
+  scan(false);
 }
 
 const simBtn = document.getElementById('simulate-btn');
@@ -191,7 +198,7 @@ if (simBtn) {
       document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (2 - 1 + 1) + 1); // 1 to 2
       document.getElementById('likes_received').value = Math.floor(Math.random() * (5000 - 1000 + 1) + 1000); // 1000 to 5000
       document.getElementById('mutual_matches').value = Math.floor(Math.random() * (5 - 0 + 1) + 0); // 0 to 5
-      scan();
+      scan(true);
     document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.8)';
     setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
   });
@@ -208,7 +215,7 @@ if (genBtn) {
     document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (9 - 2 + 1) + 2); // 2 to 9
     document.getElementById('likes_received').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
     document.getElementById('mutual_matches').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
-    scan();
+    scan(true);
     document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(16, 185, 129, 0.8)';
     setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
   });
