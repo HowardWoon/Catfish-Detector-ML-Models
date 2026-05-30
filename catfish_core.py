@@ -250,7 +250,7 @@ def find_thresholds(models: Dict[str, Any], x_test: np.ndarray, y_test: np.ndarr
     for name, model in models.items():
         probabilities = model.predict_proba(x_test)[:, 1]
         precision, recall, threshold_values = precision_recall_curve(y_test, probabilities)
-        best_threshold = 0.40
+        best_threshold = 0.65
         best_f1 = -1.0
         for index, threshold in enumerate(threshold_values):
             if 0.35 <= threshold <= 0.75:
@@ -384,7 +384,7 @@ def scan_input(
     behavioral_score = round(min(100.0, max(0.0, blended_score)), 1)
     
     # 6. Final verdict
-    if ml_votes >= (len(model_probs) / 2) or behavioral_score >= 60.0:
+    if ml_votes > (len(model_probs) * 0.6) or behavioral_score >= 75.0:
         final_verdict = "CATFISH"
     else:
         final_verdict = "GENUINE"
