@@ -17,15 +17,6 @@
 
 <br/>
 
-```
-██████╗ ███████╗████████╗███████╗ ██████╗████████╗
-██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝
-██║  ██║█████╗     ██║   █████╗  ██║        ██║   
-██║  ██║██╔══╝     ██║   ██╔══╝  ██║        ██║   
-██████╔╝███████╗   ██║   ███████╗╚██████╗   ██║   
-╚═════╝ ╚══════╝   ╚═╝   ╚══════╝ ╚═════╝   ╚═╝   
-```
-
 </div>
 
 ---
@@ -112,14 +103,14 @@ Each model is independently tuned via `RandomizedSearchCV` across stratified K-F
 ┌─────────────────────────────────────────────────────────────┐
 │                    ENSEMBLE VOTE                            │
 │                                                             │
-│  ① XGBoost          → Non-linear behavioral correlations   │
+│  ① XGBoost          → Non-linear behavioral correlations    │
 │  ② Random Forest    → Robust tree-based classification      │
 │  ③ Extra Trees      → Randomized splits to prevent overfit  │
-│  ④ Decision Tree    → Human-readable audit trail           │
-│  ⑤ Logistic Reg.   → Sigmoid probability baseline          │
+│  ④ Decision Tree    → Human-readable audit trail            │
+│  ⑤ Logistic Reg.    → Sigmoid probability baseline          │
 │  ⑥ Neural Network   → Latent space pattern detection        │
 │                                                             │
-│         Dynamic Threshold Range: 0.10 → 0.90               │
+│         Dynamic Threshold Range: 0.10 → 0.90                │
 │         (Per-model F1-Score optimized)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
