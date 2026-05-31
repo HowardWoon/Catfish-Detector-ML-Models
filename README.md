@@ -68,7 +68,7 @@ Raw data cannot catch sophisticated scammers. Our pipeline engineers **51 comple
 
 ---
 
-## 🧠 ML Pipeline — V32 ULTIMATE
+## 🧠 ML Pipeline — ULTIMATE
 
 ```
 Raw Data → Cleaning → Balancing → PCA → 6-Model Ensemble → SHAP → Verdict
@@ -185,7 +185,7 @@ python run_web.py
 ```
 Catfish-Detector-ML-Models/
 │
-├── 📓 WIA1006_Catfish_Group7_V32_Ultimate.ipynb  ← Full ML pipeline & theory
+├── 📓 WIA1006_Catfish_Group7_Ultimate.ipynb  ← Full ML pipeline & theory
 ├── 📊 dating_app_behavior_dataset.csv             ← 50,000 behavioral profiles
 ├── 🚀 run_web.py                                  ← Official launcher (use this)
 ├── ⚙️  catfish_core.py                            ← Core ML engine & heuristics
