@@ -36,8 +36,8 @@ ENV/
 *.bak
 
 # Large or generated artifacts
-artifacts/detector_bundle.pkl
-artifacts/*.pkl
+# (We allow detector_bundle.pkl so teammates can run without training)
+# artifacts/*.pkl
 artifacts/plots/
 
 # Notebook checkpoints
