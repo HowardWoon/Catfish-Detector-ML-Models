@@ -5,7 +5,7 @@
   
   Detecting Fake Personalities Through Behavioral Intelligence.
   
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HowardWoon/Catfish-Detector-ML-Models/blob/main/WIA1006_Catfish_Group7_V32_Ultimate.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DygpqueWNxma9PUHvAIp2jaK737kO7kZ)
 </div>
 
 ---
