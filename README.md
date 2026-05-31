@@ -21,6 +21,12 @@
 
 ---
 
+## 🌟 Try Our Live AI Notebook!
+> ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1DygpqueWNxma9PUHvAIp2jaK737kO7kZ) 👈
+> **This is the core of our project.** Run the complete 6-Model Ensemble pipeline, visualize our mathematical behavioral data, and execute the final machine learning training process directly in your browser with zero setup required!
+
+---
+
 ## ⚡ At a Glance
 
 | Stat | Value |
