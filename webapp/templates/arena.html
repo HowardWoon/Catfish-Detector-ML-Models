@@ -18,7 +18,8 @@
   </div>
 </div>
 
-<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff;">Performance Leaderboard</h2>
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff;">Performance Leaderboard</h2>
+<p style="color: var(--text-muted); margin-bottom: 20px;"><strong>How to read this:</strong> We rank models by <strong>F1-Score</strong> because dating app fraud detection is heavily imbalanced. A high F1-Score guarantees that the AI maintains a perfect balance between catching real scammers (Recall) without falsely banning innocent users (Precision). The <strong>ROC-AUC</strong> score measures the model's overall mathematical separability.</p>
 <div class="table-container glass-panel">
   <table>
     <thead>
@@ -48,7 +49,11 @@
   </table>
 </div>
 
-<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff; margin-top: 50px;">Academic Plot Gallery</h2>
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff; margin-top: 50px;">Academic Plot Gallery</h2>
+<p style="color: var(--text-muted); margin-bottom: 20px;"><strong>Understanding the visualizations:</strong><br>
+- <strong>ROC Curves</strong> show the true positive rate vs. false positive rate. A curve pushed hard into the top-left corner (AUC close to 1.0) means the model is extremely accurate.<br>
+- <strong>Feature Importances</strong> reveal the "thought process" of the AI by ranking the specific behavioral variables it prioritized to make its decisions.<br>
+- <strong>Probability Distributions</strong> show the density of predictions. A clean separation between the blue (Genuine) and orange (Catfish) bells proves the mathematical robustness of the model.</p>
 <div class="gallery">
   {% for img in images %}
   <div class="plot-card glass-panel">

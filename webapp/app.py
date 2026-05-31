@@ -20,7 +20,7 @@ def get_artifacts():
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_BUNDLE_PATH = PROJECT_ROOT / "artifacts" / "detector_bundle.pkl"
 REPORT_PATH = PROJECT_ROOT / "WIA1006_WID3006_Group Assignment.pdf"
-NOTEBOOK_PATH = PROJECT_ROOT / "WIA1006_Catfish_Group7_V19_Final.ipynb"
+NOTEBOOK_PATH = PROJECT_ROOT / "WIA1006_Catfish_Group7_V30_Ultimate.ipynb"
 VALIDATION_PAYLOAD = json.dumps(run_validation_suite())
 
 

@@ -45,7 +45,7 @@ class ModelFunction:
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "dating_app_behavior_dataset.csv"
-NOTEBOOK_PATH = BASE_DIR / "WIA1006_Catfish_Group7_V15_FIXED.ipynb"
+NOTEBOOK_PATH = BASE_DIR / "WIA1006_Catfish_Group7_V30_Ultimate.ipynb"
 ARTIFACT_DIR = BASE_DIR / "artifacts"
 ARTIFACT_BUNDLE_PATH = ARTIFACT_DIR / "detector_bundle.pkl"
 
