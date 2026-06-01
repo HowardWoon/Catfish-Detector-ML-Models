@@ -32,7 +32,7 @@
 | Stat | Value |
 |------|-------|
 | 🧬 Total Features Engineered | **51 behavioral features** |
-| 🤖 Models in Ensemble | **6 diverse algorithms** |
+| 🤖 Models in Ensemble | **6 algorithms (Week 7-9 Aligned)** |
 | 📊 Training Profiles | **50,000 behavioral records** |
 | ⚖️ Class Imbalance Handled | **SMOTE-Tomek resampling** |
 | 🗜️ Model Bundle Size | **58 MB (pre-compiled)** |
@@ -109,9 +109,9 @@ Each model is independently tuned via `RandomizedSearchCV` across stratified K-F
 ┌─────────────────────────────────────────────────────────────┐
 │                    ENSEMBLE VOTE                            │
 │                                                             │
-│  ① XGBoost          → Non-linear behavioral correlations    │
-│  ② Random Forest    → Robust tree-based classification      │
-│  ③ Extra Trees      → Randomized splits to prevent overfit  │
+│  ① Gaussian Mixture → Probabilistic distribution (Week 9)   │
+│  ② KMeans + PCA     → Unsupervised clustering (Week 8)      │
+│  ③ Support Vector   → Hyperplane margin isolation (Week 9)  │
 │  ④ Decision Tree    → Human-readable audit trail            │
 │  ⑤ Logistic Reg.    → Sigmoid probability baseline          │
 │  ⑥ Neural Network   → Latent space pattern detection        │

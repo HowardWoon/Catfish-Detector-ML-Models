@@ -65,7 +65,7 @@
 
 <h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff; margin-top: 50px;">Core Ensemble Pipeline Source Code</h2>
 <div class="glass-panel" style="padding: 30px; margin-bottom: 50px;">
-  <p style="color: var(--text-muted); margin-bottom: 20px;">The backend utilizes Scikit-Learn, XGBoost, and Imbalanced-Learn for SMOTE-Tomek balancing and RandomizedSearchCV hyperparameter tuning across 6 distinct algorithms.</p>
+  <p style="color: var(--text-muted); margin-bottom: 20px;">The backend utilizes Scikit-Learn and Imbalanced-Learn for SMOTE-Tomek balancing and RandomizedSearchCV hyperparameter tuning across 6 distinct algorithms.</p>
   
   <div style="background: #0f172a; border-radius: 8px; border: 1px solid var(--glass-border); overflow: hidden;">
     <div style="background: rgba(255,255,255,0.05); padding: 10px 20px; font-family: monospace; font-size: 0.85rem; color: #94a3b8; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between;">
@@ -78,18 +78,18 @@
     base_models = {
         "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced"),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt"),
-        "Random Forest": RandomForestClassifier(class_weight="balanced_subsample", max_features="sqrt"),
-        "Extra Trees": ExtraTreesClassifier(class_weight="balanced_subsample", max_features="sqrt"),
-        "XGBoost": XGBClassifier(scale_pos_weight=positive_weight, eval_metric="auc", tree_method="hist"),
+        "Gaussian Mixture Model": GMMClassifier(random_state=42),
+        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42),
+        "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95)), ('kmeans', KMeansClassifier())]),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500)
     }
 
     param_grids = {
         "Logistic Regression": {"C": [0.01, 0.1, 0.5, 1, 5], "penalty": ["l2"]},
         "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20]},
-        "Random Forest": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20]},
-        "Extra Trees": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20]},
-        "XGBoost": {"n_estimators": [100, 200, 300], "learning_rate": [0.03, 0.05, 0.1]},
+        "Gaussian Mixture Model": {"n_components": [2, 3, 4]},
+        "Support Vector Machine": {"C": [0.1, 1, 10], "gamma": ["scale", "auto"]},
+        "KMeans + PCA": {"kmeans__n_clusters": [2, 3, 4, 5]},
         "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
     }
 

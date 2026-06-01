@@ -25,6 +25,11 @@ from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 from sklearn.decomposition import PCA
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+from sklearn.mixture import GaussianMixture
+from sklearn.svm import SVC
+from sklearn.cluster import KMeans
+from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 class ModelFunction:
@@ -42,6 +47,62 @@ class ModelFunction:
     def predict(self, X):
         return self.estimator.predict(X)
 
+class GMMClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, n_components=2, random_state=42):
+        self.n_components = n_components
+        self.random_state = random_state
+        
+    def fit(self, X, y):
+        self.gmm = GaussianMixture(n_components=self.n_components, random_state=self.random_state)
+        self.gmm.fit(X)
+        self.cluster_mapping_ = {}
+        clusters = self.gmm.predict(X)
+        for i in range(self.n_components):
+            mask = clusters == i
+            if mask.sum() > 0:
+                self.cluster_mapping_[i] = int(round(y[mask].mean()))
+            else:
+                self.cluster_mapping_[i] = 0
+        return self
+        
+    def predict(self, X):
+        clusters = self.gmm.predict(X)
+        return np.array([self.cluster_mapping_[c] for c in clusters])
+        
+    def predict_proba(self, X):
+        preds = self.predict(X)
+        probas = np.zeros((len(X), 2))
+        for i, p in enumerate(preds):
+            probas[i, p] = 1.0
+        return probas
+
+class KMeansClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, n_clusters=2, random_state=42):
+        self.n_clusters = n_clusters
+        self.random_state = random_state
+        
+    def fit(self, X, y):
+        self.kmeans = KMeans(n_clusters=self.n_clusters, random_state=self.random_state, n_init=10)
+        self.kmeans.fit(X)
+        self.cluster_mapping_ = {}
+        for i in range(self.n_clusters):
+            mask = self.kmeans.labels_ == i
+            if mask.sum() > 0:
+                self.cluster_mapping_[i] = int(round(y[mask].mean()))
+            else:
+                self.cluster_mapping_[i] = 0
+        return self
+        
+    def predict(self, X):
+        clusters = self.kmeans.predict(X)
+        return np.array([self.cluster_mapping_[c] for c in clusters])
+        
+    def predict_proba(self, X):
+        preds = self.predict(X)
+        probas = np.zeros((len(X), 2))
+        for i, p in enumerate(preds):
+            probas[i, p] = 1.0
+        return probas
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "dating_app_behavior_dataset.csv"
@@ -217,18 +278,18 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     base_models = {
         "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced", random_state=42, n_jobs=-1),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
-        "Random Forest": RandomForestClassifier(class_weight="balanced_subsample", max_features="sqrt", random_state=42, n_jobs=-1),
-        "Extra Trees": ExtraTreesClassifier(class_weight="balanced_subsample", max_features="sqrt", random_state=42, n_jobs=-1),
-        "XGBoost": XGBClassifier(scale_pos_weight=positive_weight, eval_metric="auc", tree_method="hist", random_state=42, n_jobs=-1, verbosity=0),
+        "Gaussian Mixture Model": GMMClassifier(random_state=42),
+        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42),
+        "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500, random_state=42)
     }
 
     param_grids = {
         "Logistic Regression": {"C": [0.01, 0.1, 0.5, 1, 5], "penalty": ["l2"]},
         "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20], "min_samples_leaf": [2, 4, 8]},
-        "Random Forest": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20], "min_samples_split": [2, 5, 10]},
-        "Extra Trees": {"n_estimators": [100, 200, 300], "max_depth": [10, 15, 20], "min_samples_split": [2, 5, 10]},
-        "XGBoost": {"n_estimators": [100, 200, 300], "learning_rate": [0.03, 0.05, 0.1], "max_depth": [4, 6, 8], "subsample": [0.8, 1.0]},
+        "Gaussian Mixture Model": {"n_components": [2, 3, 4]},
+        "Support Vector Machine": {"C": [0.1, 1, 10], "gamma": ["scale", "auto"]},
+        "KMeans + PCA": {"kmeans__n_clusters": [2, 3, 4, 5]},
         "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
     }
 
