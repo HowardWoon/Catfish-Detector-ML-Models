@@ -23,6 +23,8 @@
 ## 🌟 Try Our Live AI Notebook!
 > ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1DygpqueWNxma9PUHvAIp2jaK737kO7kZ) 👈
 > **This is the core of our project.** Run the complete 6-Model Ensemble pipeline, visualize our mathematical behavioral data, and execute the final machine learning training process directly in your browser with zero setup required!
+>
+> **V32 Colab runtime:** Cells **12 → 12a–12f → 12g** train all six models with Colab-aware parallel CV (`n_jobs=-1`), reproducible subsampling, and a validation gate in **12g** before metrics/SHAP cells.
 
 ---
 
