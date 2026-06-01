@@ -331,8 +331,9 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
     
     base_models = {
-        # LR: lbfgs with max_iter=3000 converges reliably on this scaled dataset.
-        "Logistic Regression": LogisticRegression(max_iter=3000, solver='lbfgs', class_weight="balanced", random_state=42),
+        # LR: liblinear solver converges reliably on large balanced datasets.
+        # lbfgs failed to converge even at 3000 iterations on this 74k+ sample set.
+        "Logistic Regression": LogisticRegression(max_iter=500, solver='liblinear', class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
         # SVM: use C=0.3 (strong regularization) to prevent Platt scaling overconfidence.
