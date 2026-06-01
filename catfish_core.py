@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import joblib
 from imblearn.combine import SMOTETomek
-from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, precision_recall_curve
@@ -22,7 +21,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import RobustScaler
 from sklearn.tree import DecisionTreeClassifier
-from xgboost import XGBClassifier
 from sklearn.decomposition import PCA
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.mixture import GaussianMixture
@@ -572,10 +570,8 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     # Compute Feature Importances on pre-PCA data so Web App displays real feature names
     print("Computing feature importances on raw data...")
     train_resampled_raw, y_train_resampled_raw = SMOTETomek(random_state=42).fit_resample(x_train_arr, y_train_arr)
-    importance_model = ExtraTreesClassifier(
-        n_estimators=200,
+    importance_model = DecisionTreeClassifier(
         class_weight="balanced",
-        n_jobs=-1,
         random_state=42,
     )
     importance_model.fit(train_resampled_raw, y_train_resampled_raw)
