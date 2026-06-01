@@ -111,7 +111,7 @@ Each model is independently tuned via `RandomizedSearchCV` across stratified K-F
 │                    ENSEMBLE VOTE                            │
 │                                                             │
 │  ① Gaussian Mixture → Probabilistic distribution (Week 9)   │
-│  ② KMeans + PCA     → Unsupervised clustering (Week 8)      │
+│  ② KMeans           → Label-aware clustering (Week 8)       │
 │  ③ Support Vector   → Hyperplane margin isolation (Week 9)  │
 │  ④ Decision Tree    → Human-readable audit trail            │
 │  ⑤ Logistic Reg.    → Sigmoid probability baseline          │

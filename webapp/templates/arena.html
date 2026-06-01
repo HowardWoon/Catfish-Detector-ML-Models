@@ -80,7 +80,7 @@
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt"),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
         "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42),
-        "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95)), ('kmeans', KMeansClassifier())]),
+        "KMeans": KMeansClassifier(),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500)
     }
 
@@ -89,7 +89,7 @@
         "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20]},
         "Gaussian Mixture Model": {"n_components": [2, 3, 4]},
         "Support Vector Machine": {"C": [0.1, 1, 10], "gamma": ["scale", "auto"]},
-        "KMeans + PCA": {"kmeans__n_clusters": [2, 3, 4, 5]},
+        "KMeans": {"n_clusters": [2, 3, 4, 5]},
         "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
     }
 

@@ -334,7 +334,7 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
         # With only ~8000 training samples in 51-feature space, a linear-margin SVM
         # still provides useful signal without saturating to 0%/100% probabilities.
         "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=5000, C=0.3),
-        "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
+        "KMeans": KMeansClassifier(random_state=42),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
     }
 
@@ -343,7 +343,7 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
         "Decision Tree": {"max_depth": [8, 12]},
         "Gaussian Mixture Model": {"n_components": [2, 3]},
         "Support Vector Machine": {"C": [0.1, 0.3]},
-        "KMeans + PCA": {"kmeans__n_clusters": [2, 3]},
+        "KMeans": {"n_clusters": [2, 3]},
         "MLP Neural Network": {"hidden_layer_sizes": [(64, 32), (128, 64)], "alpha": [0.001, 0.01]}
     }
 
@@ -805,9 +805,19 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     )
 
 
+def _normalize_legacy_model_names(mapping: Dict[str, Any]) -> Dict[str, Any]:
+    """Rename retired bundle keys (e.g. 'KMeans + PCA' → 'KMeans')."""
+    if "KMeans + PCA" in mapping and "KMeans" not in mapping:
+        mapping["KMeans"] = mapping.pop("KMeans + PCA")
+    return mapping
+
+
 def load_artifacts() -> DetectorArtifacts:
     if ARTIFACT_BUNDLE_PATH.exists():
-        return joblib.load(ARTIFACT_BUNDLE_PATH)
+        artifacts = joblib.load(ARTIFACT_BUNDLE_PATH)
+        artifacts.models = _normalize_legacy_model_names(dict(artifacts.models))
+        artifacts.thresholds = _normalize_legacy_model_names(dict(artifacts.thresholds))
+        return artifacts
 
     df = load_dataset()
     (
