@@ -72,6 +72,17 @@ def create_app() -> Flask:
             **_page_context(artifacts),
         )
 
+    @app.get("/notebook")
+    def notebook_page():
+        artifacts = get_artifacts()
+        return render_template(
+            "notebook.html",
+            page_title="Colab Notebook Viewer",
+            page_description="Browse all Colab notebook cells",
+            active_page="notebook",
+            **_page_context(artifacts),
+        )
+
     @app.get("/arena")
     def arena_page():
         artifacts = get_artifacts()

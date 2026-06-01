@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Catfish Detector | Champion UI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=2" />
+  <meta name="description" content="{{ page_description }}" />
+  <title>{{ page_title }} | Catfish Detector AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=3" />
 </head>
 <body>
   <div class="bg-animation"></div>
@@ -16,7 +17,7 @@
         <h1 style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: none !important; text-shadow: none !important; font-weight: 800 !important; font-size: clamp(3rem, 5vw, 4.5rem) !important;">{{ page_title }}</h1>
         <p class="lede">{{ page_description }}</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="{{ url_for('index') }}">Launch AI Scanner</a>
+          <a class="btn btn-primary" href="{{ url_for('scanner_page') }}">🔍 Launch AI Scanner</a>
           <a class="btn" href="{{ url_for('export_page') }}">Download Model Assets</a>
         </div>
       </div>

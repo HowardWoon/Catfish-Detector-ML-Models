@@ -110,26 +110,36 @@ function renderScanReport(result) {
 }
 
 let lastVoiceTime = 0;
-// Sound Design
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Sound Design — lazy-init AudioContext only after first user gesture to comply with browser policy
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { return null; }
+  }
+  return audioCtx;
+}
 function playSound(type) {
-  if(audioCtx.state === 'suspended') audioCtx.resume();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if(ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(ctx.destination);
   
   if (type === 'hover') {
-    osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start(); osc.stop(ctx.currentTime + 0.1);
   } else if (type === 'alert') {
-    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
   }
 }
 
@@ -194,16 +204,21 @@ async function scan(cinematic = false) {
   
   verdictLabel.textContent = result.verdict_label;
   const threatBar = document.getElementById('threat-bar-fill');
+  const score = result.behavioral_score || 0;
   
-  if (result.verdict_label.includes('CATFISH')) {
+  if (result.verdict_label && result.verdict_label.includes('CATFISH')) {
     verdictLabel.className = 'verdict-main verdict-catfish';
-    if (threatBar) { threatBar.style.width = '90%'; threatBar.style.background = '#ef4444'; }
-    if (result.behavioral_score > 80) speakWarning();
+    if (threatBar) {
+      // Use actual behavioral score for accurate threat bar
+      threatBar.style.width = `${Math.min(score, 98)}%`;
+      threatBar.style.background = score > 70 ? '#ef4444' : '#f59e0b';
+    }
+    if (score > 60) speakWarning();
   } else {
     verdictLabel.className = 'verdict-main verdict-genuine';
     if (threatBar) {
-      if (result.behavioral_score > 40) { threatBar.style.width = '50%'; threatBar.style.background = '#f59e0b'; }
-      else { threatBar.style.width = '15%'; threatBar.style.background = '#10b981'; }
+      threatBar.style.width = `${Math.min(score, 45)}%`;
+      threatBar.style.background = score > 30 ? '#f59e0b' : '#10b981';
     }
   }
   
@@ -247,9 +262,10 @@ if (simBtn) {
       document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (2 - 1 + 1) + 1); // 1 to 2
       document.getElementById('likes_received').value = Math.floor(Math.random() * (5000 - 1000 + 1) + 1000); // 1000 to 5000
       document.getElementById('mutual_matches').value = Math.floor(Math.random() * (5 - 0 + 1) + 0); // 0 to 5
+      syncOutputs();
       scan(true);
-    document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.8)';
-    setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
+      const dg = document.querySelector('.dashboard-grid');
+      if (dg) { dg.style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.8)'; setTimeout(() => { dg.style.boxShadow = 'none'; }, 2000); }
   });
 }
 
@@ -264,8 +280,9 @@ if (genBtn) {
     document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (9 - 2 + 1) + 2); // 2 to 9
     document.getElementById('likes_received').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
     document.getElementById('mutual_matches').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
+    syncOutputs();
     scan(true);
-    document.querySelector('.dashboard-grid').style.boxShadow = '0 0 50px rgba(16, 185, 129, 0.8)';
-    setTimeout(() => { document.querySelector('.dashboard-grid').style.boxShadow = 'none'; }, 2000);
+    const dg = document.querySelector('.dashboard-grid');
+    if (dg) { dg.style.boxShadow = '0 0 50px rgba(16, 185, 129, 0.8)'; setTimeout(() => { dg.style.boxShadow = 'none'; }, 2000); }
   });
 }
