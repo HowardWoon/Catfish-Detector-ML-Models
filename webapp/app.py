@@ -23,7 +23,8 @@ def get_artifacts():
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_BUNDLE_PATH = PROJECT_ROOT / "artifacts" / "detector_bundle.pkl"
 REPORT_PATH = PROJECT_ROOT / "WIA1006_WID3006_Group Assignment.pdf"
-NOTEBOOK_PATH = PROJECT_ROOT / "WIA1006_Catfish_Group7_Ultimate.ipynb"
+# FIXED: correct notebook filename (was missing _OCC3_ prefix — caused /download/notebook.* to return 404)
+NOTEBOOK_PATH = PROJECT_ROOT / "WIA1006_OCC3_Catfish_Group7_Ultimate.ipynb"
 VALIDATION_PAYLOAD = json.dumps(run_validation_suite())
 
 
@@ -186,7 +187,8 @@ def create_app() -> Flask:
             for p in sorted(plot_dir.iterdir()):
                 if p.suffix.lower() in ('.png', '.jpg', '.jpeg'):
                     images.append(p.name)
-        return render_template('plots.html', page_title='Plots', page_description='Diagnostic plots', active_page='plots', images=images)
+        # FIXED: Pass _page_context so base.html can access 'artifacts', 'leaderboard', etc.
+        return render_template('plots.html', page_title='Diagnostic Plots', page_description='Model performance visualizations', active_page='plots', images=images, **_page_context(artifacts))
 
     @app.get('/download/plots/<path:filename>')
     def download_plot(filename: str):
@@ -214,20 +216,24 @@ def create_app() -> Flask:
 
     @app.post("/api/scan")
     def api_scan():
-        artifacts = get_artifacts()
-        payload: Dict[str, Any] = request.get_json(force=True, silent=False) or {}
-        result = render_scan_summary(payload, artifacts)
-        serializable = {
-            "behavioral_score": result["behavioral_score"],
-            "top_flags": [{"name": name, "value": value} for name, value in result["top_flags"]],
-            "model_probs": result["model_probs"],
-            "thresholds": artifacts.thresholds,
-            "ml_votes": result["ml_votes"],
-            "verdict_label": result["verdict_label"],
-            "final_verdict": result["final_verdict"],
-            "vector": result["vector"].round(4).tolist(),
-        }
-        return jsonify(serializable)
+        try:
+            artifacts = get_artifacts()
+            payload: Dict[str, Any] = request.get_json(force=True, silent=False) or {}
+            result = render_scan_summary(payload, artifacts)
+            serializable = {
+                "behavioral_score": result["behavioral_score"],
+                "top_flags": [{"name": name, "value": value} for name, value in result["top_flags"]],
+                "model_probs": result["model_probs"],
+                "thresholds": artifacts.thresholds,
+                "ml_votes": result["ml_votes"],
+                "verdict_label": result["verdict_label"],
+                "final_verdict": result["final_verdict"],
+                "vector": result["vector"].round(4).tolist(),
+            }
+            return jsonify(serializable)
+        except Exception as exc:
+            # Return JSON error so app.js doesn't crash on JSON.parse()
+            return jsonify({"error": str(exc), "verdict_label": "SCAN ERROR", "behavioral_score": 0.0, "top_flags": [], "model_probs": {}, "thresholds": {}, "ml_votes": 0, "final_verdict": "ERROR", "vector": []}), 500
 
     @app.get("/api/check")
     def api_check():
