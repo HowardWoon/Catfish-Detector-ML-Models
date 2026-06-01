@@ -49,65 +49,106 @@ class ModelFunction:
         return self.estimator.predict(X)
 
 class GMMClassifier(BaseEstimator, ClassifierMixin):
+    """Gaussian Mixture Model wrapped as a classifier.
+    
+    Uses GMM's per-component responsibilities to compute soft probabilities.
+    Each GMM component is labelled by its majority class during fit.
+    At inference, the probability of class 1 (catfish) is the sum of
+    responsibilities for all components whose majority label is 1.
+    This produces real probability gradients rather than hard 0/1.
+    """
     def __init__(self, n_components=2, random_state=42):
         self.n_components = n_components
         self.random_state = random_state
         
     def fit(self, X, y):
-        self.gmm = GaussianMixture(n_components=self.n_components, random_state=self.random_state)
+        self.classes_ = np.array([0, 1])
+        self.gmm = GaussianMixture(
+            n_components=self.n_components,
+            covariance_type='full',
+            random_state=self.random_state,
+            max_iter=200,
+        )
         self.gmm.fit(X)
         self.cluster_mapping_ = {}
         clusters = self.gmm.predict(X)
         for i in range(self.n_components):
             mask = clusters == i
             if mask.sum() > 0:
-                self.cluster_mapping_[i] = int(round(y[mask].mean()))
+                # Store the FRACTION of catfish in each cluster (soft label)
+                self.cluster_mapping_[i] = float(y[mask].mean())
             else:
-                self.cluster_mapping_[i] = 0
+                self.cluster_mapping_[i] = 0.5
         return self
         
     def predict(self, X):
-        clusters = self.gmm.predict(X)
-        return np.array([self.cluster_mapping_[c] for c in clusters])
+        proba = self.predict_proba(X)
+        return (proba[:, 1] >= 0.5).astype(int)
         
     def predict_proba(self, X):
-        preds = self.predict(X)
-        probas = np.zeros((len(X), 2))
-        for i, p in enumerate(preds):
-            probas[i, p] = 1.0
+        # Use GMM responsibilities (soft cluster assignments)
+        responsibilities = self.gmm.predict_proba(X)  # shape: (n, n_components)
+        # Weight each component's catfish fraction by its responsibility
+        catfish_prob = np.zeros(len(X))
+        for comp_idx, catfish_frac in self.cluster_mapping_.items():
+            catfish_prob += responsibilities[:, comp_idx] * catfish_frac
+        catfish_prob = np.clip(catfish_prob, 0.0, 1.0)
+        probas = np.column_stack([1.0 - catfish_prob, catfish_prob])
         return probas
 
 class KMeansClassifier(BaseEstimator, ClassifierMixin):
+    """KMeans wrapped as a classifier with soft probability outputs.
+    
+    During fit, each cluster is labelled with the fraction of catfish samples
+    it contains. During predict_proba, distance-to-centroid softmax weighting
+    is used so that points near the boundary get intermediate probabilities
+    rather than hard 0/1 assignments.
+    """
     def __init__(self, n_clusters=2, random_state=42):
         self.n_clusters = n_clusters
         self.random_state = random_state
         
     def fit(self, X, y):
-        self.kmeans = KMeans(n_clusters=self.n_clusters, random_state=self.random_state, n_init=10)
+        self.classes_ = np.array([0, 1])
+        self.kmeans = KMeans(
+            n_clusters=self.n_clusters,
+            random_state=self.random_state,
+            n_init=10,
+        )
         self.kmeans.fit(X)
-        self.cluster_mapping_ = {}
+        self.cluster_catfish_frac_ = {}
         for i in range(self.n_clusters):
             mask = self.kmeans.labels_ == i
             if mask.sum() > 0:
-                self.cluster_mapping_[i] = int(round(y[mask].mean()))
+                # Store fraction of catfish in this cluster
+                self.cluster_catfish_frac_[i] = float(y[mask].mean())
             else:
-                self.cluster_mapping_[i] = 0
+                self.cluster_catfish_frac_[i] = 0.5
         return self
         
     def predict(self, X):
-        clusters = self.kmeans.predict(X)
-        return np.array([self.cluster_mapping_[c] for c in clusters])
+        proba = self.predict_proba(X)
+        return (proba[:, 1] >= 0.5).astype(int)
         
     def predict_proba(self, X):
-        preds = self.predict(X)
-        probas = np.zeros((len(X), 2))
-        for i, p in enumerate(preds):
-            probas[i, p] = 1.0
-        return probas
+        # Compute squared distances to each centroid
+        distances = self.kmeans.transform(X)  # shape: (n_samples, n_clusters)
+        # Convert distances to similarity weights via softmax
+        # Negate distances so smaller distance → higher weight
+        neg_dist = -distances
+        exp_neg = np.exp(neg_dist - neg_dist.max(axis=1, keepdims=True))
+        weights = exp_neg / exp_neg.sum(axis=1, keepdims=True)  # softmax
+        # Weighted sum of each cluster's catfish fraction
+        catfish_probs = np.array([
+            self.cluster_catfish_frac_.get(i, 0.5) for i in range(self.n_clusters)
+        ])
+        catfish_prob = weights.dot(catfish_probs)
+        catfish_prob = np.clip(catfish_prob, 0.0, 1.0)
+        return np.column_stack([1.0 - catfish_prob, catfish_prob])
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "dating_app_behavior_dataset.csv"
-NOTEBOOK_PATH = BASE_DIR / "WIA1006_Catfish_Group7_Ultimate.ipynb"
+NOTEBOOK_PATH = BASE_DIR / "WIA1006_OCC3_Catfish_Group7_Ultimate.ipynb"
 ARTIFACT_DIR = BASE_DIR / "artifacts"
 ARTIFACT_BUNDLE_PATH = ARTIFACT_DIR / "detector_bundle.pkl"
 
@@ -277,10 +318,10 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
     
     base_models = {
-        "Logistic Regression": LogisticRegression(max_iter=500, class_weight="balanced", random_state=42, n_jobs=-1),
+        "Logistic Regression": LogisticRegression(max_iter=500, class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
-        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=1000),
+        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=3000),
         "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
     }
