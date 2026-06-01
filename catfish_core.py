@@ -327,73 +327,147 @@ def build_scanner_input(
     return input_values
 
 
-def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
-    positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
+def train_models(
+    x_train_smote: np.ndarray,
+    y_train_smote: np.ndarray,
+    x_train_orig: np.ndarray,
+    y_train_orig: np.ndarray,
+) -> Dict[str, Any]:
+    """
+    Train all 6 models.
     
-    base_models = {
-        # LR: liblinear solver converges reliably on large balanced datasets.
-        # lbfgs failed to converge even at 3000 iterations on this 74k+ sample set.
+    LR, DT, GMM, MLP train on SMOTE-balanced data (good for synthetic minority generation).
+    SVM and KMeans train on ORIGINAL data with class_weight='balanced'.
+    
+    WHY ORIGINAL DATA FOR SVM/KMEANS?
+    SMOTE creates a 50/50 class distribution. On test set (original ~10% catfish),
+    SVM calibrated on 50% catfish flags EVERYTHING as catfish -> 10% accuracy.
+    Using original data with balanced weights gives proper probability calibration.
+    """
+    positive_weight = float((y_train_orig == 0).sum() / max((y_train_orig == 1).sum(), 1))
+    
+    # Models that benefit from SMOTE (need balanced samples for robust minority class learning)
+    base_models_smote = {
         "Logistic Regression": LogisticRegression(max_iter=500, solver='liblinear', class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
-        # SVM: use C=0.3 (strong regularization) to prevent Platt scaling overconfidence.
-        # With only ~8000 training samples in 51-feature space, a linear-margin SVM
-        # still provides useful signal without saturating to 0%/100% probabilities.
-        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=5000, C=0.3),
-        "KMeans": KMeansClassifier(random_state=42),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
     }
+    
+    # Models that MUST use original data for proper calibration
+    base_models_orig = {
+        # SVM on SMOTE data = predicts catfish for everything (10% accuracy)
+        # SVM on original data with class_weight='balanced' = proper calibration
+        "Support Vector Machine": SVC(
+            probability=True, class_weight="balanced", random_state=42,
+            max_iter=5000, tol=1e-3, cache_size=2000,
+        ),
+        # KMeans on SMOTE data = all clusters ~50% catfish = all probs ~0.5 = random
+        # KMeans on original data = clusters have 5-40% catfish = meaningful gradients
+        "KMeans": KMeansClassifier(random_state=42),
+    }
 
-    param_grids = {
+    param_grids_smote = {
         "Logistic Regression": {"C": [0.5, 1, 2]},
-        "Decision Tree": {"max_depth": [8, 12]},
-        "Gaussian Mixture Model": {"n_components": [2, 3, 4], "covariance_type": ["diag", "full"], "reg_covar": [1e-4, 1e-3]},
-        "Support Vector Machine": {"C": [0.1, 0.3]},
-        "KMeans": {"n_clusters": [2, 3, 4], "refine_iters": [10, 15, 20], "temperature": [0.25, 0.5, 1.0]},
-        "MLP Neural Network": {"hidden_layer_sizes": [(64, 32), (128, 64)], "alpha": [0.001, 0.01]}
+        "Decision Tree": {"max_depth": [8, 12, 16]},
+        "Gaussian Mixture Model": {
+            "n_components": [3, 4, 5, 6],
+            "covariance_type": ["diag", "full"],
+            "reg_covar": [1e-5, 1e-4, 1e-3]
+        },
+        "MLP Neural Network": {
+            "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64)],
+            "alpha": [0.0005, 0.001, 0.005]
+        }
+    }
+    
+    param_grids_orig = {
+        # Wider C range: strong regularization (C=0.1) for simple boundary on imbalanced data,
+        # higher C (10) for complex boundary if classes are separable
+        "Support Vector Machine": {
+            "C": [0.1, 0.5, 1, 5, 10],
+            "gamma": ["scale", "auto"],
+        },
+        "KMeans": {
+            "n_clusters": [3, 4, 5],
+            "refine_iters": [15, 20, 30],
+            "temperature": [0.1, 0.25, 0.5]
+        },
     }
 
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     tuned_models = {}
 
-    n_iter_map = {
-        "Logistic Regression": 8,
-        "Decision Tree": 8,
-        "Gaussian Mixture Model": 8,
-        "Support Vector Machine": 6,
-        "KMeans": 8,
+    # --- Train SMOTE models ---
+    sample_map_smote = {
+        "Logistic Regression": 20000,
+        "Decision Tree": 10000,
+        "Gaussian Mixture Model": 12000,
+        "MLP Neural Network": 15000,
+    }
+    n_iter_map_smote = {
+        "Logistic Regression": 6,
+        "Decision Tree": 6,
+        "Gaussian Mixture Model": 10,
         "MLP Neural Network": 8,
     }
-    sample_map = {
-        "Support Vector Machine": 8000,
-        "Gaussian Mixture Model": 12000,
-        "KMeans": 12000,
-    }
 
-    for name, model in base_models.items():
-        print(f"Tuning {name}...")
+    for name, model in base_models_smote.items():
+        print(f"Tuning {name} (SMOTE data)...")
         rs = RandomizedSearchCV(
             model,
-            param_grids[name],
-            n_iter=n_iter_map.get(name, 8),
+            param_grids_smote[name],
+            n_iter=n_iter_map_smote.get(name, 8),
             cv=cv,
             scoring="f1_macro",
             random_state=42,
             n_jobs=-1,
         )
-
-        max_samples = sample_map.get(name, 15000)
-        subset_size = min(max_samples, len(x_train))
+        max_s = sample_map_smote.get(name, 15000)
+        subset_size = min(max_s, len(x_train_smote))
         rng = np.random.default_rng(42)
-        subset_idx = rng.choice(len(x_train), size=subset_size, replace=False)
-        x_fast = x_train.iloc[subset_idx] if isinstance(x_train, pd.DataFrame) else x_train[subset_idx]
-        y_fast = y_train.iloc[subset_idx] if isinstance(y_train, pd.Series) else y_train[subset_idx]
-
-        rs.fit(x_fast, y_fast)
+        idx = rng.choice(len(x_train_smote), size=subset_size, replace=False)
+        x_f = x_train_smote[idx]
+        y_f = y_train_smote[idx]
+        rs.fit(x_f, y_f)
         best = rs.best_estimator_
-        best.fit(x_train, y_train)
+        best.fit(x_train_smote, y_train_smote)
         tuned_models[name] = best
-        print(f"  Best params: {rs.best_params_}")
+        print(f"  {name}: best={rs.best_params_} CV-F1={rs.best_score_:.4f}")
+
+    # --- Train ORIGINAL-data models ---
+    sample_map_orig = {
+        "Support Vector Machine": 8000,
+        "KMeans": 12000,
+    }
+    n_iter_map_orig = {
+        "Support Vector Machine": 8,
+        "KMeans": 10,
+    }
+
+    for name, model in base_models_orig.items():
+        print(f"Tuning {name} (ORIGINAL data, class_weight=balanced)...")
+        rs = RandomizedSearchCV(
+            model,
+            param_grids_orig[name],
+            n_iter=n_iter_map_orig.get(name, 8),
+            cv=cv,
+            scoring="f1_macro",
+            random_state=42,
+            n_jobs=-1,
+        )
+        max_s = sample_map_orig.get(name, 8000)
+        subset_size = min(max_s, len(x_train_orig))
+        rng = np.random.default_rng(42)
+        idx = rng.choice(len(x_train_orig), size=subset_size, replace=False)
+        x_f = x_train_orig[idx]
+        y_f = y_train_orig[idx]
+        rs.fit(x_f, y_f)
+        best = rs.best_estimator_
+        # Refit on ALL original training data
+        best.fit(x_train_orig, y_train_orig)
+        tuned_models[name] = best
+        print(f"  {name}: best={rs.best_params_} CV-F1={rs.best_score_:.4f}")
 
     return tuned_models
 
@@ -688,7 +762,13 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
     train_resampled, y_train_resampled = SMOTETomek(random_state=42).fit_resample(x_train_arr, y_train_arr)
 
     print("Training and tuning models...")
-    models = train_models(train_resampled, y_train_resampled)
+    # Pass BOTH datasets: SMOTE for LR/DT/GMM/MLP, ORIGINAL for SVM/KMeans
+    models = train_models(
+        x_train_smote=train_resampled,
+        y_train_smote=y_train_resampled,
+        x_train_orig=x_train_arr,
+        y_train_orig=y_train_arr,
+    )
     # Wrap estimators in a lightweight callable wrapper so the saved artifacts
     # expose consistent `predict_proba` and `predict` methods and remain pickleable.
     models = {name: ModelFunction(m) for name, m in models.items()}
