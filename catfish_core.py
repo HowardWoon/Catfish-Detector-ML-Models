@@ -355,15 +355,36 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     tuned_models = {}
 
+    n_iter_map = {
+        "Logistic Regression": 8,
+        "Decision Tree": 8,
+        "Gaussian Mixture Model": 8,
+        "Support Vector Machine": 6,
+        "KMeans": 8,
+        "MLP Neural Network": 8,
+    }
+    sample_map = {
+        "Support Vector Machine": 8000,
+        "Gaussian Mixture Model": 12000,
+        "KMeans": 12000,
+    }
+
     for name, model in base_models.items():
         print(f"Tuning {name}...")
-        rs = RandomizedSearchCV(model, param_grids[name], n_iter=2, cv=cv, scoring="f1_macro", random_state=42, n_jobs=-1)
-        
-        # Use 8000 samples for SVM (more data = better Platt calibration),
-        # and 10000 for other models (fast enough, good generalization).
-        max_samples = 8000 if "Vector" in name else 10000
+        rs = RandomizedSearchCV(
+            model,
+            param_grids[name],
+            n_iter=n_iter_map.get(name, 8),
+            cv=cv,
+            scoring="f1_macro",
+            random_state=42,
+            n_jobs=-1,
+        )
+
+        max_samples = sample_map.get(name, 15000)
         subset_size = min(max_samples, len(x_train))
-        subset_idx = np.random.choice(len(x_train), size=subset_size, replace=False)
+        rng = np.random.default_rng(42)
+        subset_idx = rng.choice(len(x_train), size=subset_size, replace=False)
         x_fast = x_train.iloc[subset_idx] if isinstance(x_train, pd.DataFrame) else x_train[subset_idx]
         y_fast = y_train.iloc[subset_idx] if isinstance(y_train, pd.Series) else y_train[subset_idx]
 
@@ -384,7 +405,7 @@ def find_thresholds(models: Dict[str, Any], x_test: np.ndarray, y_test: np.ndarr
         best_threshold = 0.65
         best_f1 = -1.0
         for index, threshold in enumerate(threshold_values):
-            if 0.35 <= threshold <= 0.75:
+            if 0.25 <= threshold <= 0.85:
                 score_total = precision[index] + recall[index]
                 f1_value = (2 * precision[index] * recall[index] / score_total) if score_total > 0 else 0.0
                 if f1_value > best_f1:
@@ -498,10 +519,14 @@ def scan_input(
     )
 
     # 1. Get real Machine Learning probabilities from all 6 models
-    model_probs = {name: float(model.predict_proba(vector)[0][1]) for name, model in artifacts.models.items()}
-    
+    thresholds = _normalize_legacy_model_names(dict(artifacts.thresholds))
+    model_probs = {
+        display_model_name(name): float(model.predict_proba(vector)[0][1])
+        for name, model in artifacts.models.items()
+    }
+
     # 2. Count how many models triggered their specific thresholds
-    ml_votes = sum(1 for name, prob in model_probs.items() if prob >= artifacts.thresholds.get(name, 0.40))
+    ml_votes = sum(1 for name, prob in model_probs.items() if prob >= thresholds.get(name, 0.40))
     
     # 3. Calculate average ML probability
     avg_ml_prob = sum(model_probs.values()) / len(model_probs) if model_probs else 0.0
@@ -510,18 +535,12 @@ def scan_input(
     # 4. Get behavioral heuristic risk score for explainability
     heuristic_score, top_flags = behavioral_risk(raw_input, artifacts.population_stats)
     
-    # 5. Blend the score.
-    # REALITY CHECK: This is a synthetic dataset where genuine/catfish profiles
-    # share identical feature distributions by design. All ML models achieve AUC~0.5
-    # (equivalent to random chance). The behavioral z-score formula is the RELIABLE
-    # primary signal because it detects behavioral anomalies mathematically.
-    #
-    # Blending strategy:
-    #   - Behavioral score = 65% weight (reliable, formula-based anomaly detection)
-    #   - ML average = 35% weight (secondary, academic signal from 6 trained models)
-    #   - If ML is extremely confident (>=75% avg) OR behavioral is extreme (>=70%),
-    #     use max() to avoid suppressing a strong signal.
-    blended_score = (heuristic_score * 0.65) + (ml_score * 0.35)
+    # 5. Blend behavioral heuristics with ML ensemble consensus.
+    ml_weight = 0.35
+    spread = float(np.std(list(model_probs.values()))) if model_probs else 0.0
+    if spread >= 0.08:
+        ml_weight = min(0.50, 0.35 + spread)
+    blended_score = (heuristic_score * (1.0 - ml_weight)) + (ml_score * ml_weight)
     
     # If either signal is very strong, don't suppress it
     if heuristic_score >= 70.0 or ml_score >= 75.0:
@@ -817,12 +836,27 @@ def _normalize_legacy_model_names(mapping: Dict[str, Any]) -> Dict[str, Any]:
     return mapping
 
 
+def _bundle_needs_retrain(artifacts: DetectorArtifacts) -> bool:
+    """Retrain if cached bundle predates enhanced GMM/KMeans classifiers."""
+    gmm = artifacts.models.get("Gaussian Mixture Model")
+    if gmm is not None and not hasattr(gmm, "gmms_"):
+        return True
+    kmeans = artifacts.models.get("KMeans")
+    if kmeans is not None and not hasattr(kmeans, "refine_iters"):
+        return True
+    return False
+
+
 def load_artifacts() -> DetectorArtifacts:
     if ARTIFACT_BUNDLE_PATH.exists():
         artifacts = joblib.load(ARTIFACT_BUNDLE_PATH)
         artifacts.models = _normalize_legacy_model_names(dict(artifacts.models))
         artifacts.thresholds = _normalize_legacy_model_names(dict(artifacts.thresholds))
-        return artifacts
+        if _bundle_needs_retrain(artifacts):
+            print("⚠️  Stale model bundle — retraining all 6 models with latest pipeline...")
+            ARTIFACT_BUNDLE_PATH.unlink(missing_ok=True)
+        else:
+            return artifacts
 
     df = load_dataset()
     (
@@ -879,8 +913,149 @@ def load_artifacts() -> DetectorArtifacts:
     return artifacts
 
 
+def display_model_name(name: str) -> str:
+    return "KMeans" if name == "KMeans + PCA" else name
+
+
+def normalize_probability_map(values: Dict[str, float]) -> Dict[str, float]:
+    normalized: Dict[str, float] = {}
+    for name, value in values.items():
+        normalized[display_model_name(name)] = float(value)
+    return normalized
+
+
+def build_model_details(
+    model_probs: Dict[str, float],
+    thresholds: Dict[str, float],
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for name, probability in model_probs.items():
+        label = display_model_name(name)
+        threshold = float(
+            thresholds.get(name, thresholds.get(label, thresholds.get("KMeans + PCA", 0.40)))
+        )
+        flagged = probability >= threshold
+        rows.append(
+            {
+                "name": label,
+                "threshold": round(threshold, 4),
+                "probability": round(float(probability), 4),
+                "probability_pct": round(float(probability) * 100, 1),
+                "verdict": "CATFISH" if flagged else "GENUINE",
+                "flagged": flagged,
+            }
+        )
+    return rows
+
+
+def build_scan_html(
+    *,
+    behavioral_score: float,
+    is_catfish: bool,
+    ml_votes: int,
+    model_count: int,
+    raw_input: Dict[str, float],
+    top_flags: List[Tuple[str, float]],
+    model_details: List[Dict[str, Any]],
+) -> str:
+    title = "HIGH RISK: CATFISH DETECTED" if is_catfish else "LOW RISK: LIKELY GENUINE"
+    banner = "#b71c1c" if is_catfish else "#1b5e20"
+    bar_color = "#ef5350" if behavioral_score > 60 else ("#f59e0b" if behavioral_score > 30 else "#22c55e")
+
+    flags_li = "".join(
+        f'<li style="margin:4px 0;font-size:13px;color:#1f2937;"><span style="margin-right:6px;">⚠️</span>'
+        f'<b>{label}</b>: {score:.2f} pts</li>'
+        for label, score in top_flags
+    ) or '<li style="color:#1f2937;font-size:13px;">✅ No significant behavioral red flags detected.</li>'
+
+    ml_rows = "".join(
+        f'<tr style="background:{"#fee2e2" if row["flagged"] else "#ecfdf5"};">'
+        f'<td style="padding:10px 12px;font-size:13px;font-weight:700;color:#111827;">{row["name"]}</td>'
+        f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:600;color:#374151;">{row["threshold"]:.3f}</td>'
+        f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:700;color:{"#b91c1c" if row["flagged"] else "#15803d"};">'
+        f'{row["probability_pct"]:.1f}%</td>'
+        f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:700;color:{"#b91c1c" if row["flagged"] else "#15803d"};">'
+        f'{"🚨 CATFISH" if row["flagged"] else "✅ GENUINE"}</td></tr>'
+        for row in model_details
+    )
+
+    inp = raw_input
+    return f"""
+<div class="catfish-scan-report" style="font-family:Inter,Arial,sans-serif;max-width:760px;margin:16px auto;border-radius:14px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.18);border:1px solid #e5e7eb;">
+  <div style="background:{banner};padding:22px;text-align:center;">
+    <h2 style="color:#ffffff;margin:0;font-size:22px;font-weight:800;letter-spacing:0.5px;">{title}</h2>
+    <div style="font-size:52px;font-weight:800;color:#ffffff;margin:12px 0;">{behavioral_score:.1f}%</div>
+    <div style="background:rgba(255,255,255,0.35);border-radius:8px;height:14px;width:82%;margin:0 auto;">
+      <div style="background:{bar_color};width:{int(behavioral_score)}%;height:14px;border-radius:8px;"></div>
+    </div>
+    <div style="color:#ffffff;font-size:12px;margin-top:8px;font-weight:600;">Blended Threat Score | Decision Threshold: 30%</div>
+  </div>
+  <div style="background:#ffffff;padding:18px;border-bottom:1px solid #e5e7eb;">
+    <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:8px;">📊 Input Values</div>
+    <div style="font-size:13px;color:#1f2937;line-height:1.6;">
+      App Usage: <b>{inp.get("app_usage_time_min", 0):.0f} min</b> |
+      Swipe Ratio: <b>{inp.get("swipe_right_ratio", 0):.2f}</b> |
+      Bio: <b>{inp.get("bio_length", 0):.0f} chars</b><br>
+      Messages: <b>{inp.get("message_sent_count", 0):.0f}</b> |
+      Photos: <b>{inp.get("profile_pics_count", 0):.0f}</b> |
+      Likes: <b>{inp.get("likes_received", 0):.0f}</b> |
+      Matches: <b>{inp.get("mutual_matches", 0):.0f}</b>
+    </div>
+  </div>
+  <div style="background:#ffffff;padding:18px;border-bottom:1px solid #e5e7eb;">
+    <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:8px;">🚩 Risk Signals Detected</div>
+    <ul style="margin:0;padding-left:20px;">{flags_li}</ul>
+  </div>
+  <div style="background:#ffffff;padding:18px;">
+    <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:10px;">🤖 ML Model Signals ({ml_votes}/{model_count} flag catfish)</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr style="background:#1e293b;color:#f8fafc;">
+        <th style="padding:10px 12px;font-size:12px;text-align:left;">Model</th>
+        <th style="padding:10px 12px;font-size:12px;">Threshold</th>
+        <th style="padding:10px 12px;font-size:12px;">Probability</th>
+        <th style="padding:10px 12px;font-size:12px;">Verdict</th>
+      </tr>
+      {ml_rows}
+    </table>
+    <div style="font-size:12px;color:#334155;margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;line-height:1.5;">
+      ℹ️ <b>Ensemble note:</b> Six tuned models (class-conditional GMM + label-aware KMeans) provide ML probabilities.
+      The blended score combines behavioral z-scores (65%) with ML consensus (35%).
+    </div>
+  </div>
+</div>
+"""
+
+
 def render_scan_summary(raw_input: Dict[str, float], artifacts: DetectorArtifacts) -> Dict[str, Any]:
     result = scan_input(raw_input, artifacts)
-    verdict = "CATFISH DETECTED" if result["final_verdict"] == "CATFISH" else "LIKELY GENUINE"
-    result["verdict_label"] = verdict
+    thresholds = _normalize_legacy_model_names(dict(artifacts.thresholds))
+    model_probs = normalize_probability_map(result["model_probs"])
+    model_details = build_model_details(model_probs, thresholds)
+    ml_votes = sum(1 for row in model_details if row["flagged"])
+    is_catfish = result["final_verdict"] == "CATFISH"
+    verdict = "CATFISH DETECTED" if is_catfish else "LIKELY GENUINE"
+
+    top_flags = [{"name": name, "value": float(value)} for name, value in result["top_flags"]]
+    html_report = build_scan_html(
+        behavioral_score=float(result["behavioral_score"]),
+        is_catfish=is_catfish,
+        ml_votes=ml_votes,
+        model_count=len(model_details),
+        raw_input=raw_input,
+        top_flags=result["top_flags"],
+        model_details=model_details,
+    )
+
+    result.update(
+        {
+            "verdict_label": verdict,
+            "model_probs": model_probs,
+            "thresholds": {row["name"]: row["threshold"] for row in model_details},
+            "model_details": model_details,
+            "ml_votes": ml_votes,
+            "top_flags": top_flags,
+            "html_report": html_report,
+            "input_summary": raw_input,
+        }
+    )
     return result

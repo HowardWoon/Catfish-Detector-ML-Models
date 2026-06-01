@@ -10,8 +10,9 @@
   --neon-purple: #8b5cf6;
   --neon-pink: #ec4899;
   
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-strong: #0f172a;
   
   --success: #10b981;
   --warning: #f59e0b;
@@ -187,6 +188,35 @@ tr:first-child td { background: rgba(0, 240, 255, 0.05); }
 .plot-card img { width: 100%; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 16px; transition: transform 0.3s; }
 .plot-card img:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
 .plot-card h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--neon-cyan); }
+
+/* Live scanner embedded report (high contrast on light panels) */
+.scan-report-wrap {
+  width: 100%;
+}
+.scan-report-wrap .catfish-scan-report {
+  max-width: 100% !important;
+}
+.scan-report-wrap table th,
+.scan-report-wrap table td {
+  color: #111827;
+}
+
+/* Model matrix cards — readable labels */
+.bar-item-header strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+.bar-item-header span {
+  font-weight: 700;
+}
+#models .bar-item,
+#flags .bar-item {
+  background: rgba(0, 0, 0, 0.35);
+}
+.scanner aside .slider-header label {
+  color: var(--text-main);
+  font-weight: 600;
+}
 
 @media (max-width: 1024px) {
   .hero { grid-template-columns: 1fr; }

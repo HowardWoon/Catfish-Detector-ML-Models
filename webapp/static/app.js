@@ -35,34 +35,78 @@ function renderFlags(topFlags) {
     flags.innerHTML = '<div class="bar-item">No strong red flags detected.</div>';
     return;
   }
-  flags.innerHTML = topFlags.map((flag) => `
+  flags.innerHTML = topFlags.map((flag) => {
+    const label = flag.name ?? flag[0];
+    const value = Number(flag.value ?? flag[1] ?? 0);
+    return `
     <div class="bar-item">
       <div class="bar-item-header">
-        <strong>${flag.name}</strong>
-        <span style="color: var(--neon-pink);">${flag.value.toFixed(1)} pts</span>
+        <strong>${label}</strong>
+        <span style="color: var(--neon-pink);">${value.toFixed(1)} pts</span>
       </div>
-      <div class="bar-track"><div class="bar-fill flag-fill" style="width:${Math.min(flag.value * 4, 100)}%"></div></div>
+      <div class="bar-track"><div class="bar-fill flag-fill" style="width:${Math.min(value * 4, 100)}%"></div></div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
-function renderModels(modelProbs, thresholds = {}) {
+function displayModelName(name) {
+  return name === 'KMeans + PCA' ? 'KMeans' : name;
+}
+
+function renderModels(modelProbs, thresholds = {}, modelDetails = null) {
+  if (modelDetails && modelDetails.length) {
+    models.innerHTML = modelDetails.map((row) => {
+      const isAbove = row.flagged;
+      return `
+        <div class="bar-item" style="border-color: ${isAbove ? 'rgba(239,68,68,0.55)' : 'var(--glass-border)'}">
+          <div class="bar-item-header">
+            <strong>${row.name}</strong>
+            <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'};">${row.probability_pct.toFixed(1)}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.max(row.probability * 100, 4)}%; background: ${isAbove ? 'var(--danger)' : 'var(--success)'};"></div>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 8px; display:flex; justify-content:space-between;">
+            <span>Threshold: <b>${row.threshold.toFixed(3)}</b></span>
+            <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+
   models.innerHTML = Object.entries(modelProbs).map(([name, probability]) => {
-    const threshold = thresholds[name] ?? 0.5;
+    const label = displayModelName(name);
+    const threshold = thresholds[name] ?? thresholds[label] ?? 0.5;
     const isAbove = probability >= threshold;
     return `
-      <div class="bar-item" style="border-color: ${isAbove ? 'rgba(239,68,68,0.4)' : 'var(--glass-border)'}">
+      <div class="bar-item" style="border-color: ${isAbove ? 'rgba(239,68,68,0.55)' : 'var(--glass-border)'}">
         <div class="bar-item-header">
-          <strong>${name}</strong>
+          <strong>${label}</strong>
           <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'};">${(probability * 100).toFixed(1)}%</span>
         </div>
         <div class="bar-track">
-          <div class="bar-fill" style="width:${Math.max(probability * 100, 4)}%; background: ${isAbove ? 'var(--danger)' : 'var(--success)'}; box-shadow: 0 0 10px ${isAbove ? 'var(--danger)' : 'var(--success)'};"></div>
+          <div class="bar-fill" style="width:${Math.max(probability * 100, 4)}%; background: ${isAbove ? 'var(--danger)' : 'var(--success)'};"></div>
         </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; text-align: right;">Threshold: ${threshold.toFixed(3)}</div>
+        <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 8px; display:flex; justify-content:space-between;">
+          <span>Threshold: <b>${threshold.toFixed(3)}</b></span>
+          <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
+        </div>
       </div>
     `;
   }).join('');
+}
+
+function renderScanReport(result) {
+  const host = document.getElementById('scan-report');
+  if (!host) return;
+  if (result.html_report) {
+    host.innerHTML = result.html_report;
+    return;
+  }
+  host.innerHTML = '<p style="color:var(--text-main);padding:12px;">Report unavailable — re-run model training export.</p>';
 }
 
 let lastVoiceTime = 0;
@@ -169,8 +213,13 @@ async function scan(cinematic = false) {
   mlVotes.textContent = `${result.ml_votes}/${Object.keys(result.model_probs).length}`;
   topFlagCount.textContent = String(result.top_flags.length);
   
+  renderScanReport(result);
   renderFlags(result.top_flags);
-  renderModels(result.model_probs, result.thresholds || window.CATFISH_BOOTSTRAP?.thresholds || {});
+  renderModels(
+    result.model_probs,
+    result.thresholds || window.CATFISH_BOOTSTRAP?.thresholds || {},
+    result.model_details || null,
+  );
 }
 
 if (sliders.length) {
