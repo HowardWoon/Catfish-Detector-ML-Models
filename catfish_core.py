@@ -277,7 +277,7 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
         "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced", random_state=42, n_jobs=-1),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
-        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42),
+        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=2000),
         "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500, random_state=42)
     }
