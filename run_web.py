@@ -1,7 +1,9 @@
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 import threading
 import webbrowser
 import time
-import sys
 import os
 import urllib.request
 from urllib.error import URLError
