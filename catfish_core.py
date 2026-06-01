@@ -318,9 +318,8 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
     
     base_models = {
-        # LR: use saga solver which converges faster on large datasets,
-        # and supports L1/L2 regularization equally well.
-        "Logistic Regression": LogisticRegression(max_iter=2000, solver='saga', class_weight="balanced", random_state=42),
+        # LR: lbfgs with max_iter=3000 converges reliably on this scaled dataset.
+        "Logistic Regression": LogisticRegression(max_iter=3000, solver='lbfgs', class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
         # SVM: use C=0.3 (strong regularization) to prevent Platt scaling overconfidence.
@@ -762,7 +761,7 @@ def _train_test_artifacts(df: pd.DataFrame) -> Tuple[
         try:
             lb = model_metrics.copy()
             plt.figure(figsize=(8, max(3, len(lb) * 0.5)))
-            sns.barplot(x="F1-Score", y="Model", data=lb.sort_values("F1-Score", ascending=False), palette="magma")
+            sns.barplot(x="F1-Score", y="Model", hue="Model", data=lb.sort_values("F1-Score", ascending=False), palette="magma", legend=False)
             plt.title("Model Leaderboard — F1-Score")
             plt.tight_layout()
             plt.savefig(plot_dir / "leaderboard_f1.png", dpi=150)
