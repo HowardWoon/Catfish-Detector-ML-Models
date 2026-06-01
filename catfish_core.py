@@ -274,21 +274,21 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
     positive_weight = float((y_train == 0).sum() / max((y_train == 1).sum(), 1))
     
     base_models = {
-        "Logistic Regression": LogisticRegression(max_iter=3000, solver="saga", class_weight="balanced", random_state=42, n_jobs=-1),
+        "Logistic Regression": LogisticRegression(max_iter=500, class_weight="balanced", random_state=42, n_jobs=-1),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
-        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=2000),
+        "Support Vector Machine": SVC(probability=True, class_weight="balanced", random_state=42, max_iter=1000),
         "KMeans + PCA": Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
-        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=500, random_state=42)
+        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
     }
 
     param_grids = {
-        "Logistic Regression": {"C": [0.01, 0.1, 0.5, 1, 5], "penalty": ["l2"]},
-        "Decision Tree": {"max_depth": [5, 10, 15, None], "min_samples_split": [5, 10, 20], "min_samples_leaf": [2, 4, 8]},
-        "Gaussian Mixture Model": {"n_components": [2, 3, 4]},
-        "Support Vector Machine": {"C": [0.1, 1, 10], "gamma": ["scale", "auto"]},
-        "KMeans + PCA": {"kmeans__n_clusters": [2, 3, 4, 5]},
-        "MLP Neural Network": {"hidden_layer_sizes": [(128, 64), (256, 128, 64)], "alpha": [0.0001, 0.001]}
+        "Logistic Regression": {"C": [1]},
+        "Decision Tree": {"max_depth": [10]},
+        "Gaussian Mixture Model": {"n_components": [2]},
+        "Support Vector Machine": {"C": [1], "gamma": ["scale"]},
+        "KMeans + PCA": {"kmeans__n_clusters": [2]},
+        "MLP Neural Network": {"hidden_layer_sizes": [(128, 64)], "alpha": [0.001]}
     }
 
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
@@ -296,8 +296,13 @@ def train_models(x_train: np.ndarray, y_train: np.ndarray) -> Dict[str, Any]:
 
     for name, model in base_models.items():
         print(f"Tuning {name}...")
-        rs = RandomizedSearchCV(model, param_grids[name], n_iter=5, cv=cv, scoring="f1_macro", random_state=42, n_jobs=-1)
-        rs.fit(x_train, y_train)
+        rs = RandomizedSearchCV(model, param_grids[name], n_iter=1, cv=cv, scoring="f1_macro", random_state=42, n_jobs=-1)
+        
+        subset_idx = np.random.choice(len(x_train), size=min(3000, len(x_train)), replace=False)
+        x_fast = x_train.iloc[subset_idx] if isinstance(x_train, pd.DataFrame) else x_train[subset_idx]
+        y_fast = y_train.iloc[subset_idx] if isinstance(y_train, pd.Series) else y_train[subset_idx]
+
+        rs.fit(x_fast, y_fast)
         tuned_models[name] = rs.best_estimator_
         print(f"  Best params: {rs.best_params_}")
 
