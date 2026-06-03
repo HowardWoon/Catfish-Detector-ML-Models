@@ -350,7 +350,6 @@ def train_models(
     base_models_smote = {
         "Logistic Regression": LogisticRegression(max_iter=500, solver='liblinear', class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
-        "Gaussian Mixture Model": GMMClassifier(random_state=42),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
     }
     
@@ -365,16 +364,14 @@ def train_models(
         # KMeans on SMOTE data = all clusters ~50% catfish = all probs ~0.5 = random
         # KMeans on original data = clusters have 5-40% catfish = meaningful gradients
         "KMeans": KMeansClassifier(random_state=42),
+        # GMM on SMOTE data = 50% prior = massively overpredicts Catfish on test set
+        # GMM on original data = 90/10 prior = properly calibrated
+        "Gaussian Mixture Model": GMMClassifier(random_state=42),
     }
 
     param_grids_smote = {
         "Logistic Regression": {"C": [0.5, 1, 2]},
         "Decision Tree": {"max_depth": [8, 12, 16]},
-        "Gaussian Mixture Model": {
-            "n_components": [3, 4, 5, 6],
-            "covariance_type": ["diag", "full"],
-            "reg_covar": [1e-5, 1e-4, 1e-3]
-        },
         "MLP Neural Network": {
             "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64)],
             "alpha": [0.0005, 0.001, 0.005]
@@ -393,6 +390,11 @@ def train_models(
             "refine_iters": [15, 20, 30],
             "temperature": [0.1, 0.25, 0.5]
         },
+        "Gaussian Mixture Model": {
+            "n_components": [3, 4, 5, 6],
+            "covariance_type": ["diag", "full"],
+            "reg_covar": [1e-5, 1e-4, 1e-3]
+        },
     }
 
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
@@ -402,13 +404,11 @@ def train_models(
     sample_map_smote = {
         "Logistic Regression": 20000,
         "Decision Tree": 10000,
-        "Gaussian Mixture Model": 12000,
         "MLP Neural Network": 15000,
     }
     n_iter_map_smote = {
         "Logistic Regression": 6,
         "Decision Tree": 6,
-        "Gaussian Mixture Model": 10,
         "MLP Neural Network": 8,
     }
 
@@ -439,10 +439,12 @@ def train_models(
     sample_map_orig = {
         "Support Vector Machine": 8000,
         "KMeans": 12000,
+        "Gaussian Mixture Model": 12000,
     }
     n_iter_map_orig = {
         "Support Vector Machine": 8,
         "KMeans": 10,
+        "Gaussian Mixture Model": 10,
     }
 
     for name, model in base_models_orig.items():
@@ -480,7 +482,7 @@ def find_thresholds(models: Dict[str, Any], x_test: np.ndarray, y_test: np.ndarr
         best_threshold = 0.65
         best_f1 = -1.0
         for index, threshold in enumerate(threshold_values):
-            if 0.25 <= threshold <= 0.85:
+            if 0.01 <= threshold <= 0.99:
                 score_total = precision[index] + recall[index]
                 f1_value = (2 * precision[index] * recall[index] / score_total) if score_total > 0 else 0.0
                 if f1_value > best_f1:
