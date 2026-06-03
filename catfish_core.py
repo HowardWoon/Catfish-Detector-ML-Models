@@ -366,8 +366,8 @@ def train_models(
     }
 
     param_grids_smote = {
-        "Logistic Regression": {"C": [0.5, 1, 2]},
-        "Decision Tree": {"max_depth": [8, 12, 16]},
+        "Logistic Regression": {"C": [0.5, 1, 2], "penalty": ["l2"]},
+        "Decision Tree": {"max_depth": [8, 12, 16], "min_samples_split": [5, 10]},
         "MLP Neural Network": {
             "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64)],
             "alpha": [0.0005, 0.001, 0.005]
