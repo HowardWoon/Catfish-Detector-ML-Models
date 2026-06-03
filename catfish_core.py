@@ -352,7 +352,6 @@ def train_models(
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
         "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42),
         "Gaussian Mixture Model": GMMClassifier(random_state=42),
-        "KMeans": KMeansClassifier(random_state=42),
     }
     
     # Models that MUST use original data for proper calibration
@@ -363,6 +362,7 @@ def train_models(
             probability=True, class_weight="balanced", random_state=42,
             max_iter=5000, tol=1e-3, cache_size=2000,
         ),
+        "KMeans": KMeansClassifier(random_state=42),
     }
 
     param_grids_smote = {
@@ -376,12 +376,7 @@ def train_models(
             "n_components": [3, 4, 5, 6],
             "covariance_type": ["diag", "full"],
             "reg_covar": [1e-5, 1e-4, 1e-3]
-        },
-        "KMeans": {
-            "n_clusters": [30, 40, 50],
-            "refine_iters": [15, 20],
-            "temperature": [0.1, 0.25, 0.5]
-        },
+        }
     }
     
     param_grids_orig = {
@@ -390,6 +385,11 @@ def train_models(
         "Support Vector Machine": {
             "C": [0.1, 0.5, 1, 5, 10],
             "gamma": ["scale", "auto"],
+        },
+        "KMeans": {
+            "n_clusters": [30, 40, 50],
+            "refine_iters": [15, 20],
+            "temperature": [0.1, 0.25, 0.5]
         },
     }
 
@@ -438,9 +438,11 @@ def train_models(
     # --- Train ORIGINAL-data models ---
     sample_map_orig = {
         "Support Vector Machine": 8000,
+        "KMeans": 12000,
     }
     n_iter_map_orig = {
         "Support Vector Machine": 8,
+        "KMeans": 8,
     }
 
     for name, model in base_models_orig.items():
