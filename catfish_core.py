@@ -350,7 +350,9 @@ def train_models(
     base_models_smote = {
         "Logistic Regression": LogisticRegression(max_iter=500, solver='liblinear', class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
-        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42)
+        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42),
+        "Gaussian Mixture Model": GMMClassifier(random_state=42),
+        "KMeans": KMeansClassifier(random_state=42),
     }
     
     # Models that MUST use original data for proper calibration
@@ -361,12 +363,6 @@ def train_models(
             probability=True, class_weight="balanced", random_state=42,
             max_iter=5000, tol=1e-3, cache_size=2000,
         ),
-        # KMeans on SMOTE data = all clusters ~50% catfish = all probs ~0.5 = random
-        # KMeans on original data = clusters have 5-40% catfish = meaningful gradients
-        "KMeans": KMeansClassifier(random_state=42),
-        # GMM on SMOTE data = 50% prior = massively overpredicts Catfish on test set
-        # GMM on original data = 90/10 prior = properly calibrated
-        "Gaussian Mixture Model": GMMClassifier(random_state=42),
     }
 
     param_grids_smote = {
@@ -375,7 +371,17 @@ def train_models(
         "MLP Neural Network": {
             "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64)],
             "alpha": [0.0005, 0.001, 0.005]
-        }
+        },
+        "Gaussian Mixture Model": {
+            "n_components": [3, 4, 5, 6],
+            "covariance_type": ["diag", "full"],
+            "reg_covar": [1e-5, 1e-4, 1e-3]
+        },
+        "KMeans": {
+            "n_clusters": [30, 40, 50],
+            "refine_iters": [15, 20],
+            "temperature": [0.1, 0.25, 0.5]
+        },
     }
     
     param_grids_orig = {
@@ -384,16 +390,6 @@ def train_models(
         "Support Vector Machine": {
             "C": [0.1, 0.5, 1, 5, 10],
             "gamma": ["scale", "auto"],
-        },
-        "KMeans": {
-            "n_clusters": [3, 4, 5],
-            "refine_iters": [15, 20, 30],
-            "temperature": [0.1, 0.25, 0.5]
-        },
-        "Gaussian Mixture Model": {
-            "n_components": [3, 4, 5, 6],
-            "covariance_type": ["diag", "full"],
-            "reg_covar": [1e-5, 1e-4, 1e-3]
         },
     }
 
@@ -405,11 +401,15 @@ def train_models(
         "Logistic Regression": 20000,
         "Decision Tree": 10000,
         "MLP Neural Network": 15000,
+        "Gaussian Mixture Model": 12000,
+        "KMeans": 12000,
     }
     n_iter_map_smote = {
         "Logistic Regression": 6,
         "Decision Tree": 6,
         "MLP Neural Network": 8,
+        "Gaussian Mixture Model": 8,
+        "KMeans": 8,
     }
 
     for name, model in base_models_smote.items():
@@ -438,13 +438,9 @@ def train_models(
     # --- Train ORIGINAL-data models ---
     sample_map_orig = {
         "Support Vector Machine": 8000,
-        "KMeans": 12000,
-        "Gaussian Mixture Model": 12000,
     }
     n_iter_map_orig = {
         "Support Vector Machine": 8,
-        "KMeans": 10,
-        "Gaussian Mixture Model": 10,
     }
 
     for name, model in base_models_orig.items():
