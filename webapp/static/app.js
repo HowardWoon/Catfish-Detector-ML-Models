@@ -69,7 +69,7 @@ function renderModels(modelProbs, thresholds = {}, modelDetails = null) {
           </div>
           <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 8px; display:flex; justify-content:space-between;">
             <span>Threshold: <b>${row.threshold.toFixed(3)}</b></span>
-            <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
+            <span style="display:inline-block; padding:4px 10px; border-radius:12px; font-size:11px; color:white; font-weight:800; background: ${isAbove ? 'var(--danger)' : 'var(--success)'}; box-shadow:0 1px 2px rgba(0,0,0,0.2);">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
           </div>
         </div>
       `;
@@ -92,7 +92,7 @@ function renderModels(modelProbs, thresholds = {}, modelDetails = null) {
         </div>
         <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 8px; display:flex; justify-content:space-between;">
           <span>Threshold: <b>${threshold.toFixed(3)}</b></span>
-          <span style="color: ${isAbove ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
+          <span style="display:inline-block; padding:4px 10px; border-radius:12px; font-size:11px; color:white; font-weight:800; background: ${isAbove ? 'var(--danger)' : 'var(--success)'}; box-shadow:0 1px 2px rgba(0,0,0,0.2);">${isAbove ? '🚨 CATFISH' : '✅ GENUINE'}</span>
         </div>
       </div>
     `;

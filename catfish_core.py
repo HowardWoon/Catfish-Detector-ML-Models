@@ -1053,8 +1053,10 @@ def build_scan_html(
         f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:600;color:#374151;">{row["threshold"]:.3f}</td>'
         f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:700;color:{"#b91c1c" if row["flagged"] else "#15803d"};">'
         f'{row["probability_pct"]:.1f}%</td>'
-        f'<td style="padding:10px 12px;font-size:13px;text-align:center;font-weight:700;color:{"#b91c1c" if row["flagged"] else "#15803d"};">'
-        f'{"🚨 CATFISH" if row["flagged"] else "✅ GENUINE"}</td></tr>'
+        f'<td style="padding:10px 12px;font-size:13px;text-align:center;">'
+        f'<span style="display:inline-block;padding:4px 10px;border-radius:12px;font-weight:800;font-size:11px;'
+        f'color:#ffffff;background:{"#dc2626" if row["flagged"] else "#16a34a"};box-shadow:0 1px 2px rgba(0,0,0,0.2);">'
+        f'{"🚨 CATFISH" if row["flagged"] else "✅ GENUINE"}</span></td></tr>'
         for row in model_details
     )
 
