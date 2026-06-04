@@ -4,7 +4,7 @@
 
 <br/>
 
-[![Open In Colab](https://img.shields.io/badge/Open%20In-Colab-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](https://colab.research.google.com/drive/1QYRr0f40wjBKo33-7yQqD4CNZhrCc-6v)
+[![Open In Colab](https://img.shields.io/badge/Open%20In-Colab-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](https://colab.research.google.com/drive/1AR7Mv0Eg1iGw2IWA1pB_Xt9RZHPHeLCx#scrollTo=ce2f5a66)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-Server-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
@@ -21,7 +21,7 @@
 ---
 
 ## 🌟 Try Our Live AI Notebook!
-> ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1QYRr0f40wjBKo33-7yQqD4CNZhrCc-6v) 👈
+> ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1AR7Mv0Eg1iGw2IWA1pB_Xt9RZHPHeLCx#scrollTo=ce2f5a66) 👈
 > **This is the core of our project.** Run the complete 6-Model Ensemble pipeline, visualize our mathematical behavioral data, and execute the final machine learning training process directly in your browser with zero setup required!
 >
 > **V32.0 Bulletproof Edition:** Cells **12 → 12a–12f → 12g** train all six models with `RandomizedSearchCV` for extreme hyperparameter tuning, Colab-aware parallel CV (`n_jobs=-1`), reproducible subsampling, and a validation gate in **12g** before metrics/SHAP cells.
