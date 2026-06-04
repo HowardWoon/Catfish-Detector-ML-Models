@@ -1,0 +1,442 @@
+======================================================================
+MARKDOWN:
+## 🔥 Cell 12 — ML Pipeline Initialization
+We split the monolithic ML training into distinct cells to prevent Colab timeout.
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🔥 CELL 12: ML PIPELINE INITIALIZATION
+# ==============================================================================
+# DESCRIPTION:
+# This cell initializes the configurations for all 6 Machine Learning algorithms. 
+# It sets up the hyperparameter grids (param_grids) for RandomizedSearchCV, 
+# defining the mathematical boundaries (like tree depths, learning rates) the AI 
+# will explore to find the most optimal configuration.
+# ==============================================================================
+
+# ═══════════════════════════════════════════════════════════════
+# CELL 12 | ML Pipeline Initialization
+# ═══════════════════════════════════════════════════════════════
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.linear_model   import LogisticRegression
+from sklearn.tree           import DecisionTreeClassifier
+from sklearn.ensemble       import RandomForestClassifier, ExtraTreesClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.mixture        import GaussianMixture
+from sklearn.svm            import SVC
+from sklearn.cluster        import KMeans
+from sklearn.pipeline       import Pipeline
+from sklearn.base           import BaseEstimator, ClassifierMixin
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+
+if 'X_train_bal' not in dir(): raise RuntimeError('❌ Run Cells 4–9 first.')
+
+
+
+class GMMClassifier(BaseEstimator, ClassifierMixin):
+    """
+    Gaussian Mixture Model wrapped as a classifier.
+    Uses GMM responsibilities (soft cluster assignments) to output real
+    probability gradients — not hard 0/1 labels.
+    """
+    def __init__(self, n_components=2, random_state=42):
+        self.n_components = n_components
+        self.random_state = random_state
+
+    def fit(self, X, y):
+        self.classes_ = np.array([0, 1])
+        self.gmm = GaussianMixture(
+            n_components=self.n_components,
+            covariance_type='full',
+            random_state=self.random_state,
+            max_iter=200,
+        )
+        self.gmm.fit(X)
+        self.cluster_mapping_ = {}
+        clusters = self.gmm.predict(X)
+        for i in range(self.n_components):
+            mask = clusters == i
+            self.cluster_mapping_[i] = float(y[mask].mean()) if mask.sum() > 0 else 0.5
+        return self
+
+    def predict(self, X):
+        return (self.predict_proba(X)[:, 1] >= 0.5).astype(int)
+
+    def predict_proba(self, X):
+        # Soft responsibilities from GMM
+        responsibilities = self.gmm.predict_proba(X)
+        catfish_prob = np.zeros(len(X))
+        for comp_idx, catfish_frac in self.cluster_mapping_.items():
+            catfish_prob += responsibilities[:, comp_idx] * catfish_frac
+        catfish_prob = np.clip(catfish_prob, 0.0, 1.0)
+        return np.column_stack([1.0 - catfish_prob, catfish_prob])
+
+class KMeansClassifier(BaseEstimator, ClassifierMixin):
+    """
+    KMeans wrapped as a classifier with soft probability outputs.
+    Uses softmax distance-to-centroid weighting so boundary points
+    receive intermediate probabilities rather than hard 0/1.
+    """
+    def __init__(self, n_clusters=2, random_state=42):
+        self.n_clusters = n_clusters
+        self.random_state = random_state
+
+    def fit(self, X, y):
+        self.classes_ = np.array([0, 1])
+        self.kmeans = KMeans(
+            n_clusters=self.n_clusters,
+            random_state=self.random_state,
+            n_init=10,
+        )
+        self.kmeans.fit(X)
+        self.cluster_catfish_frac_ = {}
+        for i in range(self.n_clusters):
+            mask = self.kmeans.labels_ == i
+            self.cluster_catfish_frac_[i] = float(y[mask].mean()) if mask.sum() > 0 else 0.5
+        return self
+
+    def predict(self, X):
+        return (self.predict_proba(X)[:, 1] >= 0.5).astype(int)
+
+    def predict_proba(self, X):
+        distances = self.kmeans.transform(X)  # (n_samples, n_clusters)
+        neg_dist = -distances
+        exp_neg = np.exp(neg_dist - neg_dist.max(axis=1, keepdims=True))
+        weights = exp_neg / exp_neg.sum(axis=1, keepdims=True)
+        catfish_probs = np.array([self.cluster_catfish_frac_.get(i, 0.5) for i in range(self.n_clusters)])
+        catfish_prob = np.clip(weights.dot(catfish_probs), 0.0, 1.0)
+        return np.column_stack([1.0 - catfish_prob, catfish_prob])
+
+pos_w = float((y_train_bal==0).sum()/(y_train_bal==1).sum())
+
+base_models = {
+    'Logistic Regression': LogisticRegression(max_iter=500, solver='lbfgs', class_weight='balanced', random_state=42),
+    'Decision Tree': DecisionTreeClassifier(class_weight='balanced', max_features='sqrt', random_state=42),
+    'Gaussian Mixture Model': GMMClassifier(random_state=42),
+    'Support Vector Machine': SVC(max_iter=3000, probability=True, class_weight='balanced', random_state=42, C=0.5),
+    'KMeans + PCA': Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('kmeans', KMeansClassifier(random_state=42))]),
+    'MLP Neural Network': MLPClassifier(early_stopping=True, max_iter=200, batch_size=512, random_state=42)
+}
+
+param_grids = {
+    "Logistic Regression": {"C": [0.1, 1, 5], "penalty": ["l2"]},
+    "Decision Tree": {"max_depth": [5, 10, 15], "min_samples_split": [5, 10]},
+    "Gaussian Mixture Model": {"n_components": [2, 3]},
+    "Support Vector Machine": {"C": [0.1, 1], "gamma": ["scale"]},
+    "KMeans + PCA": {"kmeans__n_clusters": [2, 3]},
+    "MLP Neural Network": {"hidden_layer_sizes": [(64, 32)], "alpha": [0.001]}
+}
+
+models = {}
+cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+print(f'✅ ML Pipeline Initialized. Ready to train on {X_train_bal.shape[1]} features.')
+
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12a — Train Logistic Regression
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12a: LOGISTIC REGRESSION TRAINING
+# ==============================================================================
+# DESCRIPTION:
+# This cell trains the Logistic Regression model using RandomizedSearchCV to find 
+# the best 'C' regularization parameter. Once trained, it plots the top 10 
+# coefficient weights, visualizing exactly which features pull the prediction towards 
+# Catfish (positive) or Genuine (negative).
+# ==============================================================================
+
+# ═══════════════════════════════════════════════════════════════
+# CELL 12a | Logistic Regression
+# ═══════════════════════════════════════════════════════════════
+name = 'Logistic Regression'
+print(f'🔄 Tuning {name}...')
+# Use a modest search for logistic regression; keep single-threaded on Windows
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=10, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+# Ultra-Fast Training Optimization: Limit to 15,000 samples for reasonable training time
+import numpy as np
+subset_size = min(15000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+
+# Visualize LR Coefficients
+try:
+    coefs = models[name].coef_[0]
+    top_indices = np.argsort(np.abs(coefs))[-10:]
+    plt.figure(figsize=(10, 5))
+    plt.barh(np.array(FEATURE_NAMES)[top_indices], coefs[top_indices], color='teal')
+    plt.title("Logistic Regression - Top 10 Coefficients")
+    plt.xlabel("Coefficient Value")
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print("Could not plot LR coefficients:", e)
+
+
+
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12b — Train Decision Tree
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12b: DECISION TREE TRAINING
+# ==============================================================================
+
+name = 'Decision Tree'
+print(f'🔄 Tuning {name}...')
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=10, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+import numpy as np
+subset_size = min(3000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+
+from sklearn.tree import plot_tree
+import pandas as pd
+
+try:
+    X_train_viz = pd.DataFrame(X_train_bal, columns=FEATURE_NAMES)
+    X_train_viz[NUM_COLS] = scaler.inverse_transform(X_train_viz[NUM_COLS])
+    tree_viz = DecisionTreeClassifier(class_weight='balanced', max_features='sqrt', random_state=42)
+    tree_viz.fit(X_train_viz, y_train_bal)
+    plt.figure(figsize=(15, 8))
+    plot_tree(tree_viz, max_depth=2, feature_names=FEATURE_NAMES, class_names=['Genuine', 'Catfish'], filled=True, rounded=True, fontsize=10)
+    plt.title('Decision Tree - Top 2 Depths (Trained on Unscaled Data for Readability)')
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print('Could not plot DT:', e)
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12c — Train Gaussian Mixture Model
+
+Trains a **Gaussian Mixture Model** (GMM) — a probabilistic clustering algorithm that models the data as a mixture of Gaussian distributions. GMM learns the underlying distribution of genuine vs catfish profiles without assuming linearity.
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12c: GAUSSIAN MIXTURE MODEL (GMM) TRAINING
+# ==============================================================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA as _PCA_viz
+
+name = 'Gaussian Mixture Model'
+print(f'🔄 Tuning {name}...')
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=3, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+subset_size = min(3000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+if hasattr(models[name], 'n_components'): print(f'   Components: {models[name].n_components}')
+if hasattr(models[name], 'cluster_mapping_'): print(f'   Cluster catfish fractions: {models[name].cluster_mapping_}')
+
+try:
+    _viz_n = min(500, len(X_train_bal))
+    _viz_idx = np.random.choice(len(X_train_bal), size=_viz_n, replace=False)
+    X_viz = X_train_bal.iloc[_viz_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[_viz_idx]
+    pca2d = _PCA_viz(n_components=2, random_state=42)
+    X_2d = pca2d.fit_transform(X_viz)
+    probs = models[name].predict_proba(X_viz)[:, 1] if hasattr(models[name], 'predict_proba') else np.zeros(len(X_2d))
+    plt.figure(figsize=(8, 6))
+    plt.scatter(X_2d[:, 0], X_2d[:, 1], c=probs, cmap='RdYlGn_r', s=8, alpha=0.6)
+    plt.title('GMM — Approx. P(Catfish) in PCA space')
+    plt.colorbar(label='P(Catfish)')
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print('GMM visualization skipped:', e)
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12d — Train Support Vector Machine
+---
+Trains the SVM with optimized max_iter to prevent hanging on massive datasets.
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12d: SUPPORT VECTOR MACHINE (SVM) TRAINING
+# ==============================================================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.inspection import permutation_importance
+
+name = 'Support Vector Machine'
+print(f'🔄 Tuning {name}...')
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=8, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+subset_size = min(2000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+
+try:
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    _eval_n = min(800, len(X_test_arr))
+    _eval_idx = np.random.choice(len(X_test_arr), size=_eval_n, replace=False)
+    X_eval = X_test_arr[_eval_idx]
+    y_eval = y_test_arr[_eval_idx]
+    svm_probs = models[name].predict_proba(X_eval)[:, 1]
+    axes[0].hist(svm_probs[y_eval == 0], bins=20, alpha=0.6, color='#1565c0', label='Genuine', density=True, edgecolor='white', linewidth=0.5)
+    axes[0].hist(svm_probs[y_eval == 1], bins=20, alpha=0.6, color='#b71c1c', label='Catfish', density=True, edgecolor='white', linewidth=0.5)
+    axes[0].axvline(0.5, color='orange', linestyle='--', linewidth=2, label='Decision boundary (0.5)')
+    axes[0].set_title('SVM — Probability Distribution\nGenuine vs Catfish Separation', fontweight='bold')
+    axes[0].set_xlabel('P(Catfish) — SVM Output Probability')
+    axes[0].set_ylabel('Density')
+    axes[0].legend(fontsize=9)
+    axes[0].grid(True, alpha=0.3)
+
+    _perm_n = min(200, len(X_test_arr))
+    _perm_idx = np.random.choice(len(X_test_arr), size=_perm_n, replace=False)
+    X_perm = X_test_arr[_perm_idx]
+    y_perm = y_test_arr[_perm_idx]
+    pi_result = permutation_importance(models[name], X_perm, y_perm, n_repeats=3, random_state=42, scoring='f1_macro', n_jobs=1)
+    pi_means = pi_result.importances_mean
+    top10_idx = np.argsort(pi_means)[-10:]
+    top10_names = [FEATURE_NAMES[i] for i in top10_idx]
+    top10_vals = pi_means[top10_idx]
+    colors = ['#ef5350' if v > 0 else '#78909c' for v in top10_vals]
+    axes[1].barh(top10_names, top10_vals, color=colors)
+    axes[1].axvline(0, color='black', linewidth=0.8)
+    axes[1].set_title('SVM — Permutation Feature Importance', fontweight='bold', fontsize=9)
+    axes[1].set_xlabel('Mean F1-score decrease')
+    axes[1].grid(True, alpha=0.3, axis='x')
+    plt.suptitle('Support Vector Machine — Model Analysis', fontsize=13, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print(f'Visualization skipped: {e}')
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12e — Train KMeans + PCA
+
+Trains a **KMeans + PCA** hybrid model. PCA (Principal Component Analysis) first compresses the features to their most informative dimensions, then KMeans clusters them into genuine/catfish groups based on majority class assignment.
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12e: KMEANS + PCA TRAINING
+# ==============================================================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA as _PCA2D
+
+name = 'KMeans + PCA'
+print(f'🔧 Tuning {name}...')
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=3, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+subset_size = min(3000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+
+try:
+    _viz_n = min(500, len(X_train_bal))
+    _viz_idx = np.random.choice(len(X_train_bal), size=_viz_n, replace=False)
+    X_viz = X_train_bal.iloc[_viz_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[_viz_idx]
+    y_viz = y_train_bal.iloc[_viz_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[_viz_idx]
+    if hasattr(y_viz, 'values'): y_viz = y_viz.values
+    pca2d = _PCA2D(n_components=2, random_state=42)
+    X_2d = pca2d.fit_transform(X_viz)
+    probs = models[name].predict_proba(X_viz)[:, 1] if hasattr(models[name], 'predict_proba') else np.zeros(len(X_2d))
+    plt.figure(figsize=(8, 6))
+    plt.scatter(X_2d[:, 0], X_2d[:, 1], c=probs, cmap='RdYlGn_r', s=8, alpha=0.6)
+    plt.title('KMeans + PCA — Approx. P(Catfish) in PCA space')
+    plt.colorbar(label='P(Catfish)')
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print('KMeans visualization skipped:', e)
+======================================================================
+MARKDOWN:
+## 🚀 Cell 12f — Train MLP Neural Network
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ==============================================================================
+# 🚀 CELL 12f: MULTI-LAYER PERCEPTRON (NEURAL NETWORK)
+# ==============================================================================
+
+name = 'MLP Neural Network'
+print(f'🔄 Tuning {name}...')
+rs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=8, cv=cv, scoring='f1_macro', random_state=42, n_jobs=1)
+import numpy as np
+subset_size = min(3000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+rs.fit(x_fast, y_fast)
+models[name] = rs.best_estimator_
+print(f'✅ {name} best params: {rs.best_params_}')
+
+try:
+    plt.figure(figsize=(10, 5))
+    plt.plot(models[name].loss_curve_, color='purple', linewidth=2)
+    plt.title('MLP Neural Network - Training Loss Convergence')
+    plt.xlabel('Epochs / Iterations')
+    plt.ylabel('Loss')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print('Could not plot MLP loss curve:', e)
+======================================================================
+MARKDOWN:
+## 🏁 Cell 12g — Model Training Complete
+----------------------------------------------------------------------
+CODE CELL FOLLOWING:
+# ═══════════════════════════════════════════════════════════════
+# CELL 13 | Learning Curves Analysis
+# ═══════════════════════════════════════════════════════════════
+import numpy as np, matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
+if 'models' not in dir(): raise RuntimeError('❌ Run previous cells first.')
+
+print('📈 Plotting Learning Curves for top 2 models (Decision Tree & Support Vector Machine)...')
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+for ax, name in zip(axes, ['Decision Tree', 'Support Vector Machine']):
+    if name not in models: continue
+    import numpy as np
+    lc_subset_size = min(3000, len(X_train_bal))
+    lc_subset_idx = np.random.choice(len(X_train_bal), size=lc_subset_size, replace=False)
+    x_lc = X_train_bal.iloc[lc_subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[lc_subset_idx]
+    y_lc = y_train_bal.iloc[lc_subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[lc_subset_idx]
+
+    train_sizes, train_scores, test_scores = learning_curve(
+        models[name], x_lc, y_lc, cv=3, n_jobs=1,
+        train_sizes=np.linspace(0.2, 1.0, 4), scoring='f1_macro')
+
+    train_mean = np.mean(train_scores, axis=1)
+    train_std = np.std(train_scores, axis=1)
+    test_mean = np.mean(test_scores, axis=1)
+    test_std = np.std(test_scores, axis=1)
+
+    ax.plot(train_sizes, train_mean, 'o-', color='r', label='Training score')
+    ax.plot(train_sizes, test_mean, 'o-', color='g', label='Cross-validation score')
+    ax.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, alpha=0.1, color='r')
+    ax.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, alpha=0.1, color='g')
+
+    ax.set_title(f'Learning Curve: {name}', fontweight='bold')
+    ax.set_xlabel('Training examples')
+    ax.set_ylabel('F1-Macro Score')
+    ax.legend(loc='lower right')
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+plt.tight_layout()
+plt.show()

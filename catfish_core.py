@@ -348,21 +348,24 @@ def train_models(
     
     # Models that benefit from SMOTE (need balanced samples for robust minority class learning)
     base_models_smote = {
-        "Logistic Regression": LogisticRegression(max_iter=500, solver='liblinear', class_weight="balanced", random_state=42),
+        "Logistic Regression": LogisticRegression(max_iter=500, solver="lbfgs", class_weight="balanced", random_state=42),
         "Decision Tree": DecisionTreeClassifier(class_weight="balanced", max_features="sqrt", random_state=42),
-        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, random_state=42),
-        "Gaussian Mixture Model": GMMClassifier(random_state=42),
+        "MLP Neural Network": MLPClassifier(early_stopping=True, max_iter=200, batch_size=512, random_state=42),
+        # Enhance GMM: Wrapping in PCA prevents Curse of Dimensionality on 51 features
+        "Gaussian Mixture Model": Pipeline([
+            ("pca", PCA(n_components=0.95, random_state=42)),
+            ("gmm", GMMClassifier(random_state=42))
+        ]),
+        # Enhance KMeans: Moving to SMOTE balanced data allows probabilities to hit 1.0
+        "KMeans": KMeansClassifier(random_state=42)
     }
     
     # Models that MUST use original data for proper calibration
     base_models_orig = {
-        # SVM on SMOTE data = predicts catfish for everything (10% accuracy)
-        # SVM on original data with class_weight='balanced' = proper calibration
         "Support Vector Machine": SVC(
             probability=True, class_weight="balanced", random_state=42,
             max_iter=5000, tol=1e-3, cache_size=2000,
-        ),
-        "KMeans": KMeansClassifier(random_state=42),
+        )
     }
 
     param_grids_smote = {
@@ -373,24 +376,24 @@ def train_models(
             "alpha": [0.0005, 0.001, 0.005]
         },
         "Gaussian Mixture Model": {
-            "n_components": [3, 4, 5, 6],
-            "covariance_type": ["diag", "full"],
-            "reg_covar": [1e-5, 1e-4, 1e-3]
+            "gmm__n_components": [2, 3, 4],
+            "gmm__covariance_type": ["diag", "full"],
+            "gmm__reg_covar": [1e-4, 1e-3]
+        },
+        "KMeans": {
+            "n_clusters": [20, 30, 40],
+            "refine_iters": [10, 15],
+            "temperature": [0.1, 0.25, 0.5]
         }
     }
     
     param_grids_orig = {
-        # Wider C range: strong regularization (C=0.1) for simple boundary on imbalanced data,
-        # higher C (10) for complex boundary if classes are separable
+        # Enhanced SVM tuning grid for better decision boundaries
         "Support Vector Machine": {
-            "C": [0.1, 0.5, 1, 5, 10],
+            "C": [1, 10, 50],
             "gamma": ["scale", "auto"],
-        },
-        "KMeans": {
-            "n_clusters": [30, 40, 50],
-            "refine_iters": [15, 20],
-            "temperature": [0.1, 0.25, 0.5]
-        },
+            "kernel": ["rbf"]
+        }
     }
 
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
@@ -929,6 +932,13 @@ def _bundle_needs_retrain(artifacts: DetectorArtifacts) -> bool:
 
 
 def load_artifacts() -> DetectorArtifacts:
+    import sys
+    import __main__
+    if not hasattr(__main__, 'GMMClassifier'):
+        setattr(__main__, 'GMMClassifier', GMMClassifier)
+    if not hasattr(__main__, 'KMeansClassifier'):
+        setattr(__main__, 'KMeansClassifier', KMeansClassifier)
+        
     if ARTIFACT_BUNDLE_PATH.exists():
         artifacts = joblib.load(ARTIFACT_BUNDLE_PATH)
         artifacts.models = _normalize_legacy_model_names(dict(artifacts.models))
