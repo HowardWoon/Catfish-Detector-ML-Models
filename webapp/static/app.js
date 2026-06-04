@@ -235,7 +235,150 @@ async function scan(cinematic = false) {
     result.thresholds || window.CATFISH_BOOTSTRAP?.thresholds || {},
     result.model_details || null,
   );
+  
+  if (!cinematic) {
+    updateScanHistory(result);
+  }
 }
+
+// --- RADAR CHART LOGIC ---
+let radarChartInstance = null;
+const featureKeys = [
+  'app_usage_time_min', 'swipe_right_ratio', 'bio_length', 
+  'message_sent_count', 'profile_pics_count', 'likes_received', 'mutual_matches'
+];
+const featureLabels = [
+  'App Usage', 'Swipe Right %', 'Bio Length', 
+  'Messages', 'Photos', 'Likes', 'Matches'
+];
+
+function normalize(val, key, stats) {
+  const min = stats[key].min || 0;
+  const max = stats[key].max || 1;
+  return Math.max(0, Math.min(1, (val - min) / (max - min)));
+}
+
+function updateRadarChart(payload) {
+  const ctx = document.getElementById('radarChart');
+  if (!ctx) return;
+  
+  const bs = window.CATFISH_BOOTSTRAP || {};
+  const stats = bs.popStats || {};
+  const catfish = bs.catfishProfile || {};
+  
+  const currentUserNorm = featureKeys.map(k => normalize(payload[k] || 0, k, stats));
+  const catfishNorm = featureKeys.map(k => normalize(catfish[k] || 0, k, stats));
+  const popAvgNorm = featureKeys.map(k => normalize(stats[k]?.mean || 0, k, stats));
+
+  if (radarChartInstance) {
+    radarChartInstance.data.datasets[0].data = popAvgNorm;
+    radarChartInstance.data.datasets[1].data = catfishNorm;
+    radarChartInstance.data.datasets[2].data = currentUserNorm;
+    radarChartInstance.update();
+    return;
+  }
+
+  radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: featureLabels,
+      datasets: [
+        {
+          label: 'Population Avg',
+          data: popAvgNorm,
+          borderColor: 'rgba(0, 240, 255, 0.8)',
+          backgroundColor: 'rgba(0, 240, 255, 0.1)',
+          borderWidth: 2,
+          pointRadius: 0
+        },
+        {
+          label: 'Catfish Median',
+          data: catfishNorm,
+          borderColor: 'rgba(239, 68, 68, 0.8)',
+          borderDash: [5, 5],
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          borderWidth: 2,
+          pointRadius: 0
+        },
+        {
+          label: 'Current Input',
+          data: currentUserNorm,
+          borderColor: 'rgba(16, 185, 129, 1)',
+          backgroundColor: 'rgba(16, 185, 129, 0.4)',
+          borderWidth: 3,
+          pointBackgroundColor: 'rgba(16, 185, 129, 1)'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          min: 0, max: 1,
+          ticks: { display: false },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+          pointLabels: { color: 'rgba(255, 255, 255, 0.7)', font: { family: 'Outfit', size: 11 } }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#fff', font: { family: 'Outfit' } }, position: 'bottom' }
+      }
+    }
+  });
+}
+
+// --- SCAN HISTORY LOGIC ---
+const scanHistory = [];
+function updateScanHistory(result) {
+  const tbody = document.getElementById('scan-history-body');
+  if (!tbody) return;
+  
+  const topFlag = result.top_flags && result.top_flags.length > 0 
+    ? (result.top_flags[0].name || result.top_flags[0][0]) 
+    : 'None';
+  
+  const isCatfish = result.verdict_label && result.verdict_label.includes('CATFISH');
+  const color = isCatfish ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+  const textColor = isCatfish ? 'var(--danger)' : 'var(--success)';
+  const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+  
+  const tr = document.createElement('tr');
+  tr.style.background = color;
+  tr.style.borderBottom = '1px solid var(--glass-border)';
+  tr.innerHTML = `
+    <td style="padding: 10px; color: var(--text-muted);">${timeStr}</td>
+    <td style="padding: 10px; color: ${textColor}; font-weight: bold;">${isCatfish ? 'CATFISH' : 'GENUINE'}</td>
+    <td style="padding: 10px; color: #fff;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius:3px;">
+          <div style="height:100%; width:${Math.min(result.behavioral_score, 100)}%; background:${textColor}; border-radius:3px;"></div>
+        </div>
+        <span>${result.behavioral_score.toFixed(1)}%</span>
+      </div>
+    </td>
+    <td style="padding: 10px; color: var(--text-muted); font-size: 0.8rem;">${topFlag}</td>
+  `;
+  
+  tbody.insertBefore(tr, tbody.firstChild);
+  
+  // Keep only last 5 scans
+  while (tbody.children.length > 5) {
+    tbody.removeChild(tbody.lastChild);
+  }
+}
+
+const clearHistoryBtn = document.getElementById('clear-history-btn');
+if (clearHistoryBtn) {
+  clearHistoryBtn.addEventListener('click', () => {
+    const tbody = document.getElementById('scan-history-body');
+    if (tbody) tbody.innerHTML = '';
+  });
+}
+
+// Ensure radar is drawn
+updateRadarChart(readPayload());
 
 if (sliders.length) {
   applyBootstrapDefaults();
@@ -243,6 +386,7 @@ if (sliders.length) {
   sliders.forEach((slider) => {
     slider.addEventListener('input', () => {
       syncOutputs();
+      updateRadarChart(readPayload());
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => scan(false), 200);
     });
@@ -254,15 +398,16 @@ if (sliders.length) {
 const simBtn = document.getElementById('simulate-btn');
 if (simBtn) {
   simBtn.addEventListener('click', () => {
-      // Randomized realistic but clearly manipulative Catfish profile
-      document.getElementById('app_usage_time_min').value = Math.floor(Math.random() * (1200 - 500 + 1) + 500); // 500 to 1200
-      document.getElementById('swipe_right_ratio').value = (Math.random() * (1.0 - 0.85) + 0.85).toFixed(2); // 0.85 to 1.0
-      document.getElementById('bio_length').value = Math.floor(Math.random() * (30 - 0 + 1) + 0); // 0 to 30
-      document.getElementById('message_sent_count').value = Math.floor(Math.random() * (2000 - 500 + 1) + 500); // 500 to 2000
-      document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (2 - 1 + 1) + 1); // 1 to 2
-      document.getElementById('likes_received').value = Math.floor(Math.random() * (5000 - 1000 + 1) + 1000); // 1000 to 5000
-      document.getElementById('mutual_matches').value = Math.floor(Math.random() * (5 - 0 + 1) + 0); // 0 to 5
+      const catfish = window.CATFISH_BOOTSTRAP?.catfishProfile || {};
+      document.getElementById('app_usage_time_min').value = catfish.app_usage_time_min || 800;
+      document.getElementById('swipe_right_ratio').value = catfish.swipe_right_ratio || 0.95;
+      document.getElementById('bio_length').value = catfish.bio_length || 10;
+      document.getElementById('message_sent_count').value = catfish.message_sent_count || 1200;
+      document.getElementById('profile_pics_count').value = catfish.profile_pics_count || 1;
+      document.getElementById('likes_received').value = catfish.likes_received || 3000;
+      document.getElementById('mutual_matches').value = catfish.mutual_matches || 2;
       syncOutputs();
+      updateRadarChart(readPayload());
       scan(true);
       const dg = document.querySelector('.dashboard-grid');
       if (dg) { dg.style.boxShadow = '0 0 50px rgba(239, 68, 68, 0.8)'; setTimeout(() => { dg.style.boxShadow = 'none'; }, 2000); }
@@ -272,15 +417,16 @@ if (simBtn) {
 const genBtn = document.getElementById('genuine-btn');
 if (genBtn) {
   genBtn.addEventListener('click', () => {
-    // Randomized normal, healthy Genuine profile
-    document.getElementById('app_usage_time_min').value = Math.floor(Math.random() * (300 - 10 + 1) + 10); // 10 to 300
-    document.getElementById('swipe_right_ratio').value = (Math.random() * (0.7 - 0.1) + 0.1).toFixed(2); // 0.1 to 0.7
-    document.getElementById('bio_length').value = Math.floor(Math.random() * (500 - 50 + 1) + 50); // 50 to 500
-    document.getElementById('message_sent_count').value = Math.floor(Math.random() * (200 - 10 + 1) + 10); // 10 to 200
-    document.getElementById('profile_pics_count').value = Math.floor(Math.random() * (9 - 2 + 1) + 2); // 2 to 9
-    document.getElementById('likes_received').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
-    document.getElementById('mutual_matches').value = Math.floor(Math.random() * (300 - 5 + 1) + 5); // 5 to 300
+    const genuine = window.CATFISH_BOOTSTRAP?.defaultProfile || {};
+    document.getElementById('app_usage_time_min').value = genuine.app_usage_time_min || 60;
+    document.getElementById('swipe_right_ratio').value = genuine.swipe_right_ratio || 0.4;
+    document.getElementById('bio_length').value = genuine.bio_length || 150;
+    document.getElementById('message_sent_count').value = genuine.message_sent_count || 50;
+    document.getElementById('profile_pics_count').value = genuine.profile_pics_count || 4;
+    document.getElementById('likes_received').value = genuine.likes_received || 50;
+    document.getElementById('mutual_matches').value = genuine.mutual_matches || 50;
     syncOutputs();
+    updateRadarChart(readPayload());
     scan(true);
     const dg = document.querySelector('.dashboard-grid');
     if (dg) { dg.style.boxShadow = '0 0 50px rgba(16, 185, 129, 0.8)'; setTimeout(() => { dg.style.boxShadow = 'none'; }, 2000); }

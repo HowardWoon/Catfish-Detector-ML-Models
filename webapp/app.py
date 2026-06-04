@@ -25,7 +25,6 @@ MODEL_BUNDLE_PATH = PROJECT_ROOT / "artifacts" / "detector_bundle.pkl"
 REPORT_PATH = PROJECT_ROOT / "WIA1006_WID3006_Group Assignment.pdf"
 # FIXED: correct notebook filename (was missing _OCC3_ prefix — caused /download/notebook.* to return 404)
 NOTEBOOK_PATH = PROJECT_ROOT / "WIA1006_OCC3_Catfish_Group7_Ultimate.ipynb"
-VALIDATION_PAYLOAD = json.dumps(run_validation_suite())
 
 
 def _page_context(artifacts):
@@ -40,6 +39,8 @@ def _page_context(artifacts):
 
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
+    
+    validation_payload = None
 
     @app.get("/")
     def index():
@@ -248,7 +249,10 @@ def create_app() -> Flask:
 
     @app.get("/api/check")
     def api_check():
-        return app.response_class(VALIDATION_PAYLOAD, mimetype="application/json")
+        nonlocal validation_payload
+        if validation_payload is None:
+            validation_payload = json.dumps(run_validation_suite())
+        return app.response_class(validation_payload, mimetype="application/json")
 
     @app.get("/api/validation")
     def api_validation():

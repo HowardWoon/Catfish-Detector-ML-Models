@@ -18,42 +18,32 @@
   </div>
 </div>
 
-<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff;">Performance Leaderboard</h2>
-<p style="color: var(--text-muted); margin-bottom: 20px;"><strong>How to read this:</strong> We rank models by <strong>F1-Score</strong> because dating app fraud detection is heavily imbalanced. A high F1-Score guarantees that the AI maintains a perfect balance between catching real scammers (Recall) without falsely banning innocent users (Precision). The <strong>ROC-AUC</strong> score measures the model's overall mathematical separability.</p>
-<div class="table-container glass-panel">
-  <table>
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Model</th>
-        <th>F1-Score</th>
-        <th>Accuracy</th>
-        <th>Recall</th>
-        <th>Precision</th>
-        <th>ROC-AUC</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in leaderboard %}
-      <tr>
-        <td style="color: var(--neon-cyan); font-weight: 700;">#{{ loop.index }}</td>
-        <td style="font-weight: 700; color: #fff;">{{ row['Model'] }}</td>
-        <td>{{ "%.4f"|format(row['F1-Score']) }}</td>
-        <td>{{ "%.4f"|format(row['Accuracy']) }}</td>
-        <td>{{ "%.4f"|format(row['Recall']) }}</td>
-        <td>{{ "%.4f"|format(row['Precision']) }}</td>
-        <td>{{ "%.4f"|format(row['ROC-AUC']) }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="dashboard-grid">
+  <div class="result-card glass-panel" style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center;">
+    <div style="text-align: left;">
+      <h2 style="font-size: 2rem; color: #fff;">Model Performance Matrix</h2>
+      <p style="color: var(--text-muted); margin-top: 10px;">Select a metric to re-rank the models dynamically.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-primary metric-btn" data-metric="F1-Score">F1-Score</button>
+      <button class="btn metric-btn" data-metric="ROC-AUC">ROC-AUC</button>
+      <button class="btn metric-btn" data-metric="Accuracy">Accuracy</button>
+      <button class="btn metric-btn" data-metric="Recall">Recall</button>
+      <button class="btn metric-btn" data-metric="Precision">Precision</button>
+    </div>
+  </div>
+
+  <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; height: 400px; position: relative;">
+    <canvas id="accuracyChart"></canvas>
+  </div>
 </div>
 
-<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff; margin-top: 50px;">Academic Plot Gallery</h2>
-<p style="color: var(--text-muted); margin-bottom: 20px;"><strong>Understanding the visualizations:</strong><br>
-- <strong>ROC Curves</strong> show the true positive rate vs. false positive rate. A curve pushed hard into the top-left corner (AUC close to 1.0) means the model is extremely accurate.<br>
-- <strong>Feature Importances</strong> reveal the "thought process" of the AI by ranking the specific behavioral variables it prioritized to make its decisions.<br>
-- <strong>Probability Distributions</strong> show the density of predictions. A clean separation between the blue (Genuine) and orange (Catfish) bells proves the mathematical robustness of the model.</p>
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff; margin-top: 50px;">Explainability & Threat Center</h2>
+<p style="color: var(--text-muted); margin-bottom: 20px;">
+- <strong>ROC Curves</strong> show model separability. AUC ≈ 0.5 is expected due to the synthetic dataset matching distributions.<br>
+- <strong>Feature Importances (SHAP)</strong> reveal the behavioral indicators driving predictions.<br>
+- <strong>Confusion Matrices</strong> show exact false positive / false negative tradeoffs.
+</p>
 <div class="gallery">
   {% for img in images %}
   <div class="plot-card glass-panel">
@@ -62,6 +52,79 @@
   </div>
   {% endfor %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const leaderboardData = {{ leaderboard | tojson }};
+  let currentMetric = 'F1-Score';
+  let chartInstance = null;
+
+  function renderChart() {
+    const ctx = document.getElementById('accuracyChart');
+    if (!ctx) return;
+
+    const sortedData = [...leaderboardData].sort((a, b) => b[currentMetric] - a[currentMetric]);
+    
+    const labels = sortedData.map(d => d.Model);
+    const dataValues = sortedData.map(d => d[currentMetric]);
+    
+    const colors = sortedData.map((d, i) => i === 0 ? 'rgba(0, 240, 255, 0.8)' : 'rgba(139, 92, 246, 0.6)');
+    const borderColors = sortedData.map((d, i) => i === 0 ? 'rgba(0, 240, 255, 1)' : 'rgba(139, 92, 246, 1)');
+
+    if (chartInstance) {
+      chartInstance.data.labels = labels;
+      chartInstance.data.datasets[0].data = dataValues;
+      chartInstance.data.datasets[0].backgroundColor = colors;
+      chartInstance.data.datasets[0].borderColor = borderColors;
+      chartInstance.data.datasets[0].label = currentMetric;
+      chartInstance.update();
+      return;
+    }
+
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: currentMetric,
+          data: dataValues,
+          backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: false, min: 0.4, max: 1.0, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#cbd5e1' } },
+          x: { grid: { display: false }, ticks: { color: '#cbd5e1', font: {family: 'Outfit'} } }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.metric-btn').forEach(b => {
+        b.classList.remove('btn-primary');
+        b.style.background = 'rgba(255,255,255,0.05)';
+        b.style.color = 'var(--text-main)';
+      });
+      e.target.classList.add('btn-primary');
+      e.target.style.background = 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))';
+      e.target.style.color = '#000';
+      currentMetric = e.target.dataset.metric;
+      renderChart();
+    });
+  });
+
+  renderChart();
+</script>
 
 <h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff; margin-top: 50px;">Core Ensemble Pipeline Source Code</h2>
 <div class="glass-panel" style="padding: 30px; margin-bottom: 50px;">

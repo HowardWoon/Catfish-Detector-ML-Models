@@ -13,6 +13,14 @@
       <button id="genuine-btn" class="btn btn-primary" style="font-size: 0.8rem; padding: 8px 12px; background: linear-gradient(135deg, var(--success), #000); color: #fff;">✅ Load Example Genuine</button>
     </div>
     
+    <div class="glass-panel" style="padding: 20px; margin-bottom: 24px; text-align: center;">
+      <h3 style="color: var(--neon-purple); font-size: 1.1rem; margin-bottom: 15px;">Behavioral Radar Shape</h3>
+      <div style="position: relative; width: 100%; height: 250px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">Compares current input (Green) against Population Avg (Blue) and Catfish Median (Red).</p>
+    </div>
+    
     <div class="sliders">
       <div class="slider-group">
         <div class="slider-header"><label for="app_usage_time_min">App Usage Time (min)</label> <output id="out_app_usage_time_min"></output></div>
@@ -101,6 +109,38 @@
         <div id="models" class="bar-list"></div>
       </div>
     </div>
+
+    <!-- Scan History & Export -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
+      <div class="glass-panel" style="padding: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="color: var(--text-main); font-size: 1.3rem;">Scan History Log</h3>
+          <button id="clear-history-btn" class="btn" style="padding: 6px 12px; font-size: 0.8rem;">Clear History</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--glass-border); color: var(--neon-cyan);">
+                <th style="padding: 10px;">Time</th>
+                <th style="padding: 10px;">Verdict</th>
+                <th style="padding: 10px;">Risk %</th>
+                <th style="padding: 10px;">Top Flag</th>
+              </tr>
+            </thead>
+            <tbody id="scan-history-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <h3 style="color: var(--text-main); font-size: 1.3rem; margin-bottom: 15px;">Export Result</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Download the current scan analysis as a PDF report for your records.</p>
+        <button id="export-scan-btn" class="btn btn-primary" style="width: 100%; padding: 15px;">📥 Download PDF</button>
+      </div>
+    </div>
+
   </section>
 </main>
 {% endblock %}
@@ -109,8 +149,11 @@
 <script>
   window.CATFISH_BOOTSTRAP = {{ {
     'defaultProfile': test_profiles['genuine_median'],
+    'catfishProfile': test_profiles['catfish_median'],
+    'popStats': artifacts.population_stats,
     'thresholds': artifacts.thresholds,
   } | tojson }};
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

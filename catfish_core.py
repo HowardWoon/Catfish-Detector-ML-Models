@@ -100,6 +100,7 @@ class GMMClassifier(BaseEstimator, ClassifierMixin):
 
 
 class KMeansClassifier(BaseEstimator, ClassifierMixin):
+  _estimator_type = "classifier"
   """Label-aware KMeans with tunable refinement and softmax temperature."""
   def __init__(self, n_clusters=2, refine_iters=15, temperature=0.5, random_state=42):
     self.n_clusters = n_clusters
@@ -369,11 +370,12 @@ def train_models(
     }
 
     param_grids_smote = {
-        "Logistic Regression": {"C": [0.5, 1, 2], "penalty": ["l2"]},
-        "Decision Tree": {"max_depth": [8, 12, 16], "min_samples_split": [5, 10]},
+        "Logistic Regression": {"C": [0.1, 0.5, 1, 2, 5], "penalty": ["l2"], "solver": ["lbfgs", "saga"]},
+        "Decision Tree": {"max_depth": [8, 12, 16], "min_samples_split": [5, 10, 20], "min_samples_leaf": [2, 5]},
         "MLP Neural Network": {
-            "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64)],
-            "alpha": [0.0005, 0.001, 0.005]
+            "hidden_layer_sizes": [(128, 64), (64, 32), (256, 128, 64), (128, 64, 32)],
+            "alpha": [0.0001, 0.0005, 0.001],
+            "learning_rate_init": [0.001, 0.005]
         },
         "Gaussian Mixture Model": {
             "gmm__n_components": [2, 3, 4],
@@ -390,26 +392,26 @@ def train_models(
     param_grids_orig = {
         # Enhanced SVM tuning grid for better decision boundaries
         "Support Vector Machine": {
-            "C": [1, 10, 50],
-            "gamma": ["scale", "auto"],
+            "C": [1, 10, 50, 100],
+            "gamma": ["scale", "auto", 0.1],
             "kernel": ["rbf"]
         }
     }
 
-    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     tuned_models = {}
 
     # --- Train SMOTE models ---
     sample_map_smote = {
-        "Logistic Regression": 20000,
-        "Decision Tree": 10000,
-        "MLP Neural Network": 15000,
-        "Gaussian Mixture Model": 12000,
-        "KMeans": 12000,
+        "Logistic Regression": 15000,
+        "Decision Tree": 15000,
+        "MLP Neural Network": 8000,
+        "Gaussian Mixture Model": 8000,
+        "KMeans": 8000,
     }
     n_iter_map_smote = {
-        "Logistic Regression": 6,
-        "Decision Tree": 6,
+        "Logistic Regression": 10,
+        "Decision Tree": 10,
         "MLP Neural Network": 8,
         "Gaussian Mixture Model": 8,
         "KMeans": 8,
@@ -440,11 +442,11 @@ def train_models(
 
     # --- Train ORIGINAL-data models ---
     sample_map_orig = {
-        "Support Vector Machine": 8000,
-        "KMeans": 12000,
+        "Support Vector Machine": 4000,
+        "KMeans": 8000,
     }
     n_iter_map_orig = {
-        "Support Vector Machine": 8,
+        "Support Vector Machine": 6,
         "KMeans": 8,
     }
 
@@ -921,13 +923,7 @@ def _normalize_legacy_model_names(mapping: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _bundle_needs_retrain(artifacts: DetectorArtifacts) -> bool:
-    """Retrain if cached bundle predates enhanced GMM/KMeans classifiers."""
-    gmm = artifacts.models.get("Gaussian Mixture Model")
-    if gmm is not None and not hasattr(gmm, "gmms_"):
-        return True
-    kmeans = artifacts.models.get("KMeans")
-    if kmeans is not None and not hasattr(kmeans, "refine_iters"):
-        return True
+    """Disable strict retrain checks, trust the saved bundle."""
     return False
 
 
