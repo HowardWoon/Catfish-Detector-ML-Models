@@ -298,10 +298,18 @@ def build_scanner_input(
     row = dict(train_medians_raw)
     row.update(raw_values)
 
-    a = float(row.get("app_usage_time_min", 0.0))
-    s = float(row.get("swipe_right_ratio", 0.0))
-    b = float(row.get("bio_length", 0.0))
-    m = float(row.get("message_sent_count", 0.0))
+    a = float(np.clip(row.get("app_usage_time_min", 0.0), 0, 300))
+    s = float(np.clip(row.get("swipe_right_ratio", 0.0), 0, 1.0))
+    b = float(np.clip(row.get("bio_length", 0.0), 0, 500))
+    m = float(np.clip(row.get("message_sent_count", 0.0), 0, 150))
+    
+    # Also clip pics, likes, matches if they exist
+    if "profile_pics_count" in row:
+        row["profile_pics_count"] = float(np.clip(row["profile_pics_count"], 0, 15))
+    if "likes_received" in row:
+        row["likes_received"] = float(np.clip(row["likes_received"], 0, 2000))
+    if "mutual_matches" in row:
+        row["mutual_matches"] = float(np.clip(row["mutual_matches"], 0, 200))
 
     row["engagement_score"] = m / (a + 1)
     row["swipe_msg_ratio"] = m / (s + EPS)

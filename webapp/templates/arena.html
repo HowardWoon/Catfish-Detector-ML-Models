@@ -72,6 +72,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <script>
   const leaderboardData = {{ leaderboard | tojson }};
   let currentMetric = 'F1-Score';
@@ -101,6 +102,7 @@
 
     chartInstance = new Chart(ctx, {
       type: 'bar',
+      plugins: [ChartDataLabels],
       data: {
         labels: labels,
         datasets: [{
@@ -116,11 +118,19 @@
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          y: { beginAtZero: false, min: 0.4, max: 1.0, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#cbd5e1' } },
+          y: { beginAtZero: true, min: 0.0, max: 1.0, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#cbd5e1' } },
           x: { grid: { display: false }, ticks: { color: '#cbd5e1', font: {family: 'Outfit'} } }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          datalabels: {
+            color: '#fff',
+            anchor: 'end',
+            align: 'bottom',
+            offset: 4,
+            font: { weight: 'bold', family: 'Outfit', size: 14 },
+            formatter: (value) => (value * 100).toFixed(1) + '%'
+          }
         }
       }
     });
