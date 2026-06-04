@@ -24,7 +24,7 @@
 > ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1QYRr0f40wjBKo33-7yQqD4CNZhrCc-6v) 👈
 > **This is the core of our project.** Run the complete 6-Model Ensemble pipeline, visualize our mathematical behavioral data, and execute the final machine learning training process directly in your browser with zero setup required!
 >
-> **V32 Colab runtime:** Cells **12 → 12a–12f → 12g** train all six models with Colab-aware parallel CV (`n_jobs=-1`), reproducible subsampling, and a validation gate in **12g** before metrics/SHAP cells.
+> **V32.0 Bulletproof Edition:** Cells **12 → 12a–12f → 12g** train all six models with `RandomizedSearchCV` for extreme hyperparameter tuning, Colab-aware parallel CV (`n_jobs=-1`), reproducible subsampling, and a validation gate in **12g** before metrics/SHAP cells.
 
 ---
 
@@ -158,6 +158,15 @@ Profile Input
 
 ---
 
+## 💻 Two-Pronged Web Interface
+
+We engineered two distinct web interfaces to demonstrate the AI:
+
+1. **Live Profile Scanner (Data Science Tool):** Input exact raw numerical vectors (e.g., exactly 893 likes, 14 matches) into the core ML backend to manually analyze model probabilities and heuristic anomaly z-scores.
+2. **Profile Risk Simulator (Frontend Simulator):** Build hypothetical dating profiles using plain English ("Rarely online", "Extremely chatty"). The interface automatically translates human behavior into mathematical vectors and runs the Safety Report.
+
+---
+
 ## 💻 Quick Start
 
 ### Prerequisites
@@ -192,7 +201,7 @@ python run_web.py
 ```
 Catfish-Detector-ML-Models/
 │
-├── 📓 WIA1006_Catfish_Group7_Ultimate.ipynb  ← Full ML pipeline & theory
+├── 📓 WIA1006_OCC3_Catfish_Group7_Ultimate.ipynb  ← Full ML pipeline & theory
 ├── 📊 dating_app_behavior_dataset.csv             ← 50,000 behavioral profiles
 ├── 🚀 run_web.py                                  ← Official launcher (use this)
 ├── ⚙️  catfish_core.py                            ← Core ML engine & heuristics
