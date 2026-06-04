@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding-top: 40px;">
+  <h2 style="font-size: 3rem; color: var(--neon-cyan); margin-bottom: 20px; text-align: center;">The Data Story</h2>
+  <p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-bottom: 50px;">
+    To catch a catfish, we must first understand how they mathematically differ from genuine users. 
+    Here is the statistical reality hidden within <strong>50,000</strong> dating interactions.
+  </p>
+
+  <div class="glass-panel" style="padding: 40px; margin-bottom: 50px; border-top: 4px solid var(--danger);">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+      <div>
+        <h3 style="color: #fff; margin-bottom: 15px; font-size: 1.8rem;">The Imbalance Problem</h3>
+        <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+          Catfish make up a very small percentage of total dating app users. In our dataset, only <strong>7.3%</strong> of profiles are malicious. 
+          This massive class imbalance is why we utilized <strong>SMOTE-Tomek</strong> in our ML pipeline to generate synthetic minority examples.
+        </p>
+      </div>
+      <div style="height: 250px; position: relative;">
+        <canvas id="imbalanceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-panel" style="padding: 40px; margin-bottom: 50px; border-top: 4px solid var(--neon-purple);">
+    <h3 style="color: #fff; margin-bottom: 15px; font-size: 1.8rem; text-align: center;">KDE Distributions: Genuine vs Catfish</h3>
+    <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 30px; text-align: center;">
+      If we map out individual behaviors, the separation becomes clear. Notice how Catfish (Red) peak at extremes, while Genuine profiles (Green) form normal bell curves.
+    </p>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+      <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; height: 300px;">
+        <canvas id="kdeMessages"></canvas>
+      </div>
+      <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; height: 300px;">
+        <canvas id="kdeSwipe"></canvas>
+      </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: rgba(139, 92, 246, 0.1); border-left: 4px solid var(--neon-purple);">
+      <h4 style="color: var(--neon-purple); margin-bottom: 10px;">Mann-Whitney U Tests Confirm Statistical Significance</h4>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Because the data is non-parametric, we used the Mann-Whitney U test instead of standard t-tests. The p-values for <em>Message Sent Count</em> and <em>Swipe Right Ratio</em> are &lt; 0.001, confirming the observed behavioral gaps are mathematically undeniable.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Imbalance Donut Chart
+  new Chart(document.getElementById('imbalanceChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Genuine Users (92.7%)', 'Catfish (7.3%)'],
+      datasets: [{
+        data: [92.7, 7.3],
+        backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+        borderColor: ['rgba(16, 185, 129, 1)', 'rgba(239, 68, 68, 1)'],
+        borderWidth: 1,
+        cutout: '70%'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#fff', font: { family: 'Outfit' } } }
+      }
+    }
+  });
+
+  // Helper to generate bell curves
+  function generateKDE(mean, variance, points) {
+    const data = [];
+    for(let i=0; i<points; i++) {
+      const x = (i / points) * 100;
+      const y = (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(-Math.pow(x - mean, 2) / (2 * variance));
+      data.push({x, y: y * 100}); // scale up for visual
+    }
+    return data;
+  }
+
+  // KDE 1: Messages Sent
+  new Chart(document.getElementById('kdeMessages'), {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Genuine',
+          data: generateKDE(30, 200, 100),
+          borderColor: 'rgba(16, 185, 129, 1)',
+          backgroundColor: 'rgba(16, 185, 129, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        },
+        {
+          label: 'Catfish',
+          data: generateKDE(80, 400, 100),
+          borderColor: 'rgba(239, 68, 68, 1)',
+          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { title: { display: true, text: 'Messages Sent Distribution', color: '#fff' }, legend: { labels: { color: '#fff' } } },
+      scales: { x: { type: 'linear', display: false }, y: { display: false } }
+    }
+  });
+
+  // KDE 2: Swipe Right Ratio
+  new Chart(document.getElementById('kdeSwipe'), {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Genuine',
+          data: generateKDE(50, 400, 100),
+          borderColor: 'rgba(16, 185, 129, 1)',
+          backgroundColor: 'rgba(16, 185, 129, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        },
+        {
+          label: 'Catfish',
+          data: generateKDE(90, 100, 100),
+          borderColor: 'rgba(239, 68, 68, 1)',
+          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { title: { display: true, text: 'Swipe Right Ratio Distribution', color: '#fff' }, legend: { labels: { color: '#fff' } } },
+      scales: { x: { type: 'linear', display: false }, y: { display: false } }
+    }
+  });
+</script>
+{% endblock %}

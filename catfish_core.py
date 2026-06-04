@@ -403,18 +403,18 @@ def train_models(
 
     # --- Train SMOTE models ---
     sample_map_smote = {
-        "Logistic Regression": 15000,
-        "Decision Tree": 15000,
-        "MLP Neural Network": 8000,
-        "Gaussian Mixture Model": 8000,
-        "KMeans": 8000,
+        "Logistic Regression": 15,
+        "Decision Tree": 15,
+        "MLP Neural Network": 15,
+        "Gaussian Mixture Model": 15,
+        "KMeans": 15,
     }
     n_iter_map_smote = {
-        "Logistic Regression": 10,
-        "Decision Tree": 10,
-        "MLP Neural Network": 8,
-        "Gaussian Mixture Model": 8,
-        "KMeans": 8,
+        "Logistic Regression": 15,
+        "Decision Tree": 15,
+        "MLP Neural Network": 15,
+        "Gaussian Mixture Model": 15,
+        "KMeans": 15,
     }
 
     for name, model in base_models_smote.items():
@@ -428,7 +428,7 @@ def train_models(
             random_state=42,
             n_jobs=-1,
         )
-        max_s = sample_map_smote.get(name, 15000)
+        max_s = sample_map_smote.get(name, 100000)
         subset_size = min(max_s, len(x_train_smote))
         rng = np.random.default_rng(42)
         idx = rng.choice(len(x_train_smote), size=subset_size, replace=False)
@@ -442,12 +442,12 @@ def train_models(
 
     # --- Train ORIGINAL-data models ---
     sample_map_orig = {
-        "Support Vector Machine": 4000,
-        "KMeans": 8000,
+        "Support Vector Machine": 15,
+        "KMeans": 15,
     }
     n_iter_map_orig = {
-        "Support Vector Machine": 6,
-        "KMeans": 8,
+        "Support Vector Machine": 15,
+        "KMeans": 15,
     }
 
     for name, model in base_models_orig.items():
@@ -461,7 +461,7 @@ def train_models(
             random_state=42,
             n_jobs=-1,
         )
-        max_s = sample_map_orig.get(name, 8000)
+        max_s = sample_map_orig.get(name, 100000)
         subset_size = min(max_s, len(x_train_orig))
         rng = np.random.default_rng(42)
         idx = rng.choice(len(x_train_orig), size=subset_size, replace=False)

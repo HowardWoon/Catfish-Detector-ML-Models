@@ -6,6 +6,9 @@
   <meta name="description" content="{{ page_description }}" />
   <title>{{ page_title }} | Catfish Detector AI</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=3" />
+  <script>
+    if(localStorage.getItem('theme') === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
+  </script>
 </head>
 <body>
   <div class="bg-animation"></div>
@@ -13,12 +16,16 @@
   <div class="shell">
     <header class="hero glass-panel">
       <div class="hero-copy">
-        <div class="eyebrow" style="color: var(--neon-cyan); font-weight: 600; letter-spacing: 2px; font-size: 0.9rem; margin-bottom: 10px; text-transform: uppercase;">WIA1006 ML Project • Group 7</div>
+        <div class="eyebrow" style="color: var(--neon-cyan); font-weight: 600; letter-spacing: 2px; font-size: 0.9rem; margin-bottom: 10px; text-transform: uppercase;">
+          WIA1006 ML Project • Group 7
+          <span style="display:inline-block; margin-left: 10px; padding: 2px 8px; background: rgba(0, 240, 255, 0.2); border: 1px solid var(--neon-cyan); border-radius: 12px; font-size: 0.7rem; color: var(--neon-cyan);">V32.0 Bulletproof Edition</span>
+        </div>
         <h1 style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: none !important; text-shadow: none !important; font-weight: 800 !important; font-size: clamp(3rem, 5vw, 4.5rem) !important;">{{ page_title }}</h1>
         <p class="lede">{{ page_description }}</p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="{{ url_for('scanner_page') }}">🔍 Launch AI Scanner</a>
           <a class="btn" href="{{ url_for('export_page') }}">Download Model Assets</a>
+          <button id="theme-toggle" class="btn" style="padding: 10px 15px; border-radius: 50%; font-size: 1.2rem;" aria-label="Toggle Dark Mode">🌓</button>
         </div>
       </div>
       <div class="hero-stats">
@@ -41,13 +48,13 @@
       </div>
     </header>
 
-    <nav class="page-nav glass-panel" style="padding: 10px; border-radius: 99px; display: inline-flex; justify-content: center; width: 100%; flex-wrap: wrap;">
+    <nav class="page-nav glass-panel" style="padding: 10px; border-radius: 99px; display: inline-flex; justify-content: center; width: 100%; flex-wrap: wrap; margin-bottom: 30px;">
       <a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
       <a class="nav-link {% if active_page == 'scanner' %}active{% endif %}" href="{{ url_for('scanner_page') }}">Live Scanner</a>
-      <a class="nav-link {% if active_page == 'explain' %}active{% endif %}" href="{{ url_for('explain_page') }}">Explainability</a>
-      <a class="nav-link {% if active_page == 'arena' %}active{% endif %}" href="{{ url_for('arena_page') }}">Model Arena</a>
-      <a class="nav-link {% if active_page == 'threats' %}active{% endif %}" href="{{ url_for('threats_page') }}">Threat Center</a>
-      <a class="nav-link {% if active_page == 'ethics' %}active{% endif %}" href="{{ url_for('ethics_page') }}">AI Ethics</a>
+      <a class="nav-link {% if active_page == 'arena' %}active{% endif %}" href="{{ url_for('arena_page') }}">Model Dashboard</a>
+      <a class="nav-link {% if active_page == 'simulator' %}active{% endif %}" href="{{ url_for('simulator_page') }}">Risk Simulator</a>
+      <a class="nav-link {% if active_page == 'story' %}active{% endif %}" href="{{ url_for('story_page') }}">Data Story</a>
+      <a class="nav-link {% if active_page == 'methodology' %}active{% endif %}" href="{{ url_for('methodology_page') }}">Methodology</a>
       <a class="nav-link {% if active_page == 'downloads' %}active{% endif %}" href="{{ url_for('export_page') }}">Assets</a>
     </nav>
 
@@ -55,5 +62,23 @@
   </div>
 
   {% block scripts %}{% endblock %}
+
+  <script>
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+    });
+  </script>
+
+  <!-- Floating Scan Now Button -->
+  <a href="{{ url_for('scanner_page') }}" style="position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, var(--neon-cyan), #0056b3); color: #fff; padding: 15px 30px; border-radius: 50px; font-weight: bold; text-decoration: none; box-shadow: 0 4px 20px rgba(0, 240, 255, 0.4); z-index: 1000; display: flex; align-items: center; gap: 10px; transition: transform 0.3s; font-family: 'Outfit';">
+    <span>🚨</span> SCAN NOW
+  </a>
 </body>
 </html>

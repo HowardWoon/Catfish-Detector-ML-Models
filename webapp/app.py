@@ -62,14 +62,14 @@ def create_app() -> Flask:
             **_page_context(get_artifacts()),
         )
 
-    @app.get("/explain")
-    def explain_page():
+    @app.get("/simulator")
+    def simulator_page():
         artifacts = get_artifacts()
         return render_template(
-            "explain.html",
-            page_title="AI Explainability Center",
-            page_description="Why did the AI flag this profile?",
-            active_page="explain",
+            "simulator.html",
+            page_title="Profile Risk Simulator",
+            page_description="Test behaviors in a live environment",
+            active_page="simulator",
             **_page_context(artifacts),
         )
 
@@ -102,23 +102,23 @@ def create_app() -> Flask:
             **_page_context(artifacts),
         )
 
-    @app.get("/threats")
-    def threats_page():
+    @app.get("/story")
+    def story_page():
         return render_template(
-            "threats.html",
-            page_title="Threat Monitoring Center",
-            page_description="Real-Time Dating App Security Operations",
-            active_page="threats",
+            "story.html",
+            page_title="Data Story",
+            page_description="The statistical reality behind the ML",
+            active_page="story",
             **_page_context(get_artifacts()),
         )
 
-    @app.get("/ethics")
-    def ethics_page():
+    @app.get("/methodology")
+    def methodology_page():
         return render_template(
-            "ethics.html",
-            page_title="Ethical AI Framework",
-            page_description="Balancing security with user privacy",
-            active_page="ethics",
+            "methodology.html",
+            page_title="About & Methodology",
+            page_description="Full Pipeline Breakdown & Credits",
+            active_page="methodology",
             **_page_context(get_artifacts()),
         )
 
@@ -234,7 +234,7 @@ def create_app() -> Flask:
             result = render_scan_summary(payload, artifacts)
             serializable = {
                 "behavioral_score": result["behavioral_score"],
-                "top_flags": [{"name": name, "value": value} for name, value in result["top_flags"]],
+                "top_flags": result["top_flags"],
                 "model_probs": result["model_probs"],
                 "thresholds": artifacts.thresholds,
                 "ml_votes": result["ml_votes"],

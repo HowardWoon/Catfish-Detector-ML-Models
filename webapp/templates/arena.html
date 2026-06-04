@@ -38,12 +38,30 @@
   </div>
 </div>
 
-<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 5px; color: #fff; margin-top: 50px;">Explainability & Threat Center</h2>
-<p style="color: var(--text-muted); margin-bottom: 20px;">
-- <strong>ROC Curves</strong> show model separability. AUC ≈ 0.5 is expected due to the synthetic dataset matching distributions.<br>
-- <strong>Feature Importances (SHAP)</strong> reveal the behavioral indicators driving predictions.<br>
-- <strong>Confusion Matrices</strong> show exact false positive / false negative tradeoffs.
-</p>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 50px; margin-bottom: 30px;">
+  <div class="glass-panel" style="padding: 30px; border-color: var(--warning); background: rgba(245, 158, 11, 0.05);">
+    <h3 style="color: var(--warning); margin-bottom: 15px; font-size: 1.3rem;">ℹ️ Why is AUC ≈ 0.5?</h3>
+    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+      This is an expected academic finding. The dataset is purely synthetic, meaning <strong>genuine and catfish profiles share identical statistical distributions by design</strong>. Because there is no underlying mathematical difference in the raw data, ML models default to random chance (0.5 AUC). Our <strong>Behavioral Risk Score</strong> (derived algorithmically) serves as the reliable primary signal, while the ML ensemble acts as a secondary filter.
+    </p>
+  </div>
+  
+  <div class="glass-panel" style="padding: 30px; border-color: var(--neon-cyan); background: rgba(0, 240, 255, 0.05);">
+    <h3 style="color: var(--neon-cyan); margin-bottom: 15px; font-size: 1.3rem;">🏆 Best Model vs AutoML</h3>
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span style="font-weight: bold; color: var(--text-main);">Our Ensemble (Custom)</span>
+        <span style="color: var(--success); font-weight: bold;">Precision-Optimized</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span style="font-weight: bold; color: var(--text-muted);">AutoML (Conceptual)</span>
+        <span style="color: var(--danger); font-weight: bold;">Overfit to Noise</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 style="font-family: 'Outfit'; font-size: 2rem; margin-bottom: 20px; color: #fff;">Feature Importance & Explainability</h2>
 <div class="gallery">
   {% for img in images %}
   <div class="plot-card glass-panel">

@@ -99,15 +99,7 @@ function renderModels(modelProbs, thresholds = {}, modelDetails = null) {
   }).join('');
 }
 
-function renderScanReport(result) {
-  const host = document.getElementById('scan-report');
-  if (!host) return;
-  if (result.html_report) {
-    host.innerHTML = result.html_report;
-    return;
-  }
-  host.innerHTML = '<p style="color:var(--text-main);padding:12px;">Report unavailable — re-run model training export.</p>';
-}
+// Removed legacy renderScanReport function
 
 let lastVoiceTime = 0;
 // Sound Design — lazy-init AudioContext only after first user gesture to comply with browser policy
@@ -228,7 +220,7 @@ async function scan(cinematic = false) {
   mlVotes.textContent = `${result.ml_votes}/${Object.keys(result.model_probs).length}`;
   topFlagCount.textContent = String(result.top_flags.length);
   
-  renderScanReport(result);
+  // Legacy HTML report render removed
   renderFlags(result.top_flags);
   renderModels(
     result.model_probs,
@@ -253,8 +245,11 @@ const featureLabels = [
 ];
 
 function normalize(val, key, stats) {
-  const min = stats[key].min || 0;
-  const max = stats[key].max || 1;
+  if (!stats[key]) return 0.5;
+  const mean = stats[key][0];
+  const std = stats[key][1] || 1;
+  const min = Math.max(0, mean - 2 * std);
+  const max = mean + 2 * std;
   return Math.max(0, Math.min(1, (val - min) / (max - min)));
 }
 
@@ -268,7 +263,7 @@ function updateRadarChart(payload) {
   
   const currentUserNorm = featureKeys.map(k => normalize(payload[k] || 0, k, stats));
   const catfishNorm = featureKeys.map(k => normalize(catfish[k] || 0, k, stats));
-  const popAvgNorm = featureKeys.map(k => normalize(stats[k]?.mean || 0, k, stats));
+  const popAvgNorm = featureKeys.map(k => normalize(stats[k] ? stats[k][0] : 0, k, stats));
 
   if (radarChartInstance) {
     radarChartInstance.data.datasets[0].data = popAvgNorm;
@@ -374,6 +369,13 @@ if (clearHistoryBtn) {
   clearHistoryBtn.addEventListener('click', () => {
     const tbody = document.getElementById('scan-history-body');
     if (tbody) tbody.innerHTML = '';
+  });
+}
+
+const exportScanBtn = document.getElementById('export-scan-btn');
+if (exportScanBtn) {
+  exportScanBtn.addEventListener('click', () => {
+    window.print();
   });
 }
 

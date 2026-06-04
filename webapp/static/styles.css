@@ -19,6 +19,21 @@
   --danger: #ef4444;
 }
 
+:root[data-theme="light"] {
+  --bg-color: #f8fafc;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  
+  --neon-cyan: #0284c7;
+  --neon-purple: #6d28d9;
+  --neon-pink: #be185d;
+  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-strong: #f8fafc;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
 body {

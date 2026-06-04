@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding-top: 40px;">
+  <h2 style="font-size: 3rem; color: var(--neon-cyan); margin-bottom: 20px; text-align: center;">System Methodology</h2>
+  <p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-bottom: 50px;">
+    The complete end-to-end architecture of the Catfish Detector ML pipeline.
+  </p>
+
+  <div class="glass-panel" style="padding: 40px; margin-bottom: 50px;">
+    <h3 style="color: #fff; margin-bottom: 30px; font-size: 1.8rem; text-align: center;">Data Pipeline Architecture</h3>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+      <!-- Step 1 -->
+      <div class="pipeline-node" style="flex: 1; text-align: center; padding: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--neon-purple); border-radius: 12px;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">💾</div>
+        <div style="font-weight: bold; color: var(--text-main); margin-bottom: 5px;">Raw Data</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">CSV Ingestion</div>
+      </div>
+      
+      <div style="color: var(--neon-cyan);">➡️</div>
+      
+      <!-- Step 2 -->
+      <div class="pipeline-node" style="flex: 1; text-align: center; padding: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--neon-cyan); border-radius: 12px;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">🧹</div>
+        <div style="font-weight: bold; color: var(--text-main); margin-bottom: 5px;">Pre-processing</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">SMOTE-Tomek</div>
+      </div>
+
+      <div style="color: var(--neon-cyan);">➡️</div>
+      
+      <!-- Step 3 -->
+      <div class="pipeline-node" style="flex: 1; text-align: center; padding: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--warning); border-radius: 12px;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">📉</div>
+        <div style="font-weight: bold; color: var(--text-main); margin-bottom: 5px;">Reduction</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">PCA (95% Var)</div>
+      </div>
+
+      <div style="color: var(--neon-cyan);">➡️</div>
+      
+      <!-- Step 4 -->
+      <div class="pipeline-node" style="flex: 1; text-align: center; padding: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--success); border-radius: 12px;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">🧠</div>
+        <div style="font-weight: bold; color: var(--text-main); margin-bottom: 5px;">Training</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">6-Model Ensemble</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px;">
+    <!-- Tech Specs -->
+    <div class="glass-panel" style="padding: 40px; border-color: var(--neon-cyan);">
+      <h3 style="color: var(--neon-cyan); margin-bottom: 20px; font-size: 1.5rem;">Technical Specifications</h3>
+      <ul style="list-style: none; color: var(--text-muted); line-height: 2;">
+        <li><strong style="color: var(--text-main);">Frameworks:</strong> Scikit-Learn, Flask, Chart.js</li>
+        <li><strong style="color: var(--text-main);">Ensemble Strategy:</strong> Soft Voting + Risk Scoring</li>
+        <li><strong style="color: var(--text-main);">Hyperparameter Tuning:</strong> RandomizedSearchCV</li>
+        <li><strong style="color: var(--text-main);">Dataset Size:</strong> 50,000 profiles</li>
+        <li><strong style="color: var(--text-main);">Feature Dimensions:</strong> 51 numeric vectors</li>
+      </ul>
+    </div>
+
+    <!-- Credits -->
+    <div class="glass-panel" style="padding: 40px; border-color: var(--neon-purple);">
+      <h3 style="color: var(--neon-purple); margin-bottom: 20px; font-size: 1.5rem;">WIA1006 • Group 7</h3>
+      <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;">
+        This system was engineered as the final project for WIA1006 Machine Learning.
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">Howard Woon</div>
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">Team Member 2</div>
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">Team Member 3</div>
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center;">Team Member 4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-panel" style="padding: 30px; text-align: center; border-color: var(--danger); background: rgba(239, 68, 68, 0.05);">
+    <h3 style="color: var(--danger); margin-bottom: 10px;">Disclaimer</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      This application is a machine learning demonstration. It does not interface with actual dating applications or store any real user data.
+    </p>
+  </div>
+</div>
+{% endblock %}
