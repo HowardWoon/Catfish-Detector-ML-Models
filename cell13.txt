@@ -1,0 +1,32 @@
+# ═══════════════════════════════════════════════════════════════
+# CELL 13 | Learning Curves Analysis
+# ═══════════════════════════════════════════════════════════════
+import numpy as np, matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
+if 'models' not in dir(): raise RuntimeError('❌ Run previous cells first.')
+print('📈 Plotting Learning Curves for top 2 models (Decision Tree & Support Vector Machine)...')
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+for ax, name in zip(axes, ['Decision Tree', 'Support Vector Machine']):
+    if name not in models: continue
+    import numpy as np
+    lc_subset_size = min(15000, len(X_train_bal))
+    lc_subset_idx = np.random.choice(len(X_train_bal), size=lc_subset_size, replace=False)
+    x_lc = X_train_bal.iloc[lc_subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[lc_subset_idx]
+    y_lc = y_train_bal.iloc[lc_subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[lc_subset_idx]
+    train_sizes, train_scores, test_scores = learning_curve(
+        train_sizes=np.linspace(0.2, 1.0, 4), scoring='f1_macro')
+    train_mean = np.mean(train_scores, axis=1)
+    train_std = np.std(train_scores, axis=1)
+    test_mean = np.mean(test_scores, axis=1)
+    test_std = np.std(test_scores, axis=1)
+    ax.plot(train_sizes, train_mean, 'o-', color='r', label='Training score')
+    ax.plot(train_sizes, test_mean, 'o-', color='g', label='Cross-validation score')
+    ax.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, alpha=0.1, color='r')
+    ax.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, alpha=0.1, color='g')
+    ax.set_title(f'Learning Curve: {name}', fontweight='bold')
+    ax.set_xlabel('Training examples')
+    ax.set_ylabel('F1-Macro Score')
+    ax.legend(loc='lower right')
+    ax.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()

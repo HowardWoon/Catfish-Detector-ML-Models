@@ -1,0 +1,56 @@
+# ==============================================================================
+# 🚀 CELL 12d: SUPPORT VECTOR MACHINE (SVM) TRAINING
+# ==============================================================================
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.inspection import permutation_importance
+name = 'Support Vector Machine'
+print(f'🔄 Tuning {name}...')
+gs = RandomizedSearchCV(base_models[name], param_grids[name], n_iter=2, cv=3, scoring='f1_macro', random_state=42, n_jobs=-1)
+subset_size = min(25000, len(X_train_bal))
+subset_idx = np.random.choice(len(X_train_bal), size=subset_size, replace=False)
+x_fast = X_train_bal.iloc[subset_idx] if hasattr(X_train_bal, 'iloc') else X_train_bal[subset_idx]
+y_fast = y_train_bal.iloc[subset_idx] if hasattr(y_train_bal, 'iloc') else y_train_bal[subset_idx]
+gs.fit(x_fast, y_fast)
+models[name] = gs.best_estimator_
+print(f'✅ {name} best params: {gs.best_params_}')
+try:
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    _eval_n = min(800, len(X_test_arr))
+    _eval_idx = np.random.choice(len(X_test_arr), size=_eval_n, replace=False)
+    X_eval = X_test_arr[_eval_idx]
+    y_eval = y_test_arr[_eval_idx]
+    svm_probs = models[name].predict_proba(X_eval)[:, 1]
+    axes[0].hist(svm_probs[y_eval == 0], bins=20, alpha=0.6, color='#1565c0', label='Genuine', density=False, edgecolor='white', linewidth=0.5)
+    axes[0].hist(svm_probs[y_eval == 1], bins=20, alpha=0.6, color='#b71c1c', label='Catfish', density=False, edgecolor='white', linewidth=0.5)
+    axes[0].axvline(0.5, color='orange', linestyle='--', linewidth=2, label='Decision boundary (0.5)')
+    axes[0].set_title('SVM — Probability Distribution\nGenuine vs Catfish Separation', fontweight='bold')
+    axes[0].set_xlabel('P(Catfish) — SVM Output Probability')
+    axes[0].set_ylabel('Density')
+    axes[0].legend(fontsize=9)
+    axes[0].grid(True, alpha=0.3)
+    _perm_n = min(200, len(X_test_arr))
+    _perm_idx = np.random.choice(len(X_test_arr), size=_perm_n, replace=False)
+    X_perm = X_test_arr[_perm_idx]
+    y_perm = y_test_arr[_perm_idx]
+    pi_result = permutation_importance(models[name], X_perm, y_perm, n_repeats=3, random_state=42, scoring='f1_macro', n_jobs=-1)
+    pi_means = pi_result.importances_mean
+    top10_idx = np.argsort(pi_means)[-10:]
+    top10_names = [FEATURE_NAMES[i] for i in top10_idx]
+    top10_vals = pi_means[top10_idx]
+    colors = ['#ef5350' if v > 0 else '#78909c' for v in top10_vals]
+    axes[1].barh(top10_names, top10_vals, color=colors)
+    axes[1].axvline(0, color='black', linewidth=0.8)
+    axes[1].set_title('SVM — Permutation Feature Importance', fontweight='bold', fontsize=9)
+    axes[1].set_xlabel('Mean F1-score decrease')
+    axes[1].grid(True, alpha=0.3, axis='x')
+    plt.suptitle('Support Vector Machine — Model Analysis', fontsize=13, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print(f'Visualization skipped: {e}')
+from sklearn.calibration import CalibratedClassifierCV
+print('   Applying Platt Scaling Calibration...')
+cal_svm = CalibratedClassifierCV(models[name], cv=2, method='isotonic')
+cal_svm.fit(x_fast, y_fast)
+models[name] = cal_svm

@@ -1,10 +1,11 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=200&section=header&text=CATFISH%20DETECTOR%20AI&fontSize=48&fontColor=ffffff&fontAlignY=38&desc=WIA1006%20Machine%20Learning%20•%20Group%207&descAlignY=58&descSize=16&animation=fadeIn" width="100%"/>
+<h1 align="center">CATFISH DETECTOR AI</h1>
+<h3 align="center">WIA1006 Machine Learning • Group 7</h3>
 
 <br/>
 
-[![Open In Colab](https://img.shields.io/badge/Open%20In-Colab-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](https://colab.research.google.com/drive/1QYRr0f40wjBKo33-7yQqD4CNZhrCc-6v)
+[![Open In Colab](https://img.shields.io/badge/Open%20In-Colab-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](https://colab.research.google.com/drive/1N2hnB4NZKQdJM1TVAj26KPt8Pdjq37vU)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-Server-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
@@ -21,7 +22,7 @@
 ---
 
 ## 🌟 Try Our Live AI Notebook!
-> ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1QYRr0f40wjBKo33-7yQqD4CNZhrCc-6v) 👈
+> ### 👉 [Click Here to Open Ultimate Pipeline in Google Colab!](https://colab.research.google.com/drive/1N2hnB4NZKQdJM1TVAj26KPt8Pdjq37vU) 👈
 > **This is the core of our project.** Run the complete 6-Model Ensemble pipeline, visualize our mathematical behavioral data, and execute the final machine learning training process directly in your browser with zero setup required!
 >
 > **V32.0 Bulletproof Edition:** Cells **12 → 12a–12f → 12g** train all six models with `RandomizedSearchCV` for extreme hyperparameter tuning, Colab-aware parallel CV (`n_jobs=-1`), reproducible subsampling, and a validation gate in **12g** before metrics/SHAP cells.
@@ -241,6 +242,6 @@ Catfish-Detector-ML-Models/
 
 *Built with ❤️ — detecting deception, one behavioral signature at a time.*
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:24243e,50:302b63,100:0f0c29&height=120&section=footer" width="100%"/>
+
 
 </div>
