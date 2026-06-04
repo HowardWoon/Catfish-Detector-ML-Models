@@ -562,15 +562,15 @@ def behavioral_risk(
     msg_mu       = population_stats.get("message_sent_count", (50.0, 1.0))[0]
     app_mu       = population_stats.get("app_usage_time_min", (150.0, 1.0))[0]
     eng_pop      = msg_mu / (app_mu + 1)
-    z_eng        = max(0.0, (eng - eng_pop) / (eng_pop + EPS))  # high density → suspicious
+    z_eng        = min(3.0, max(0.0, (eng - eng_pop) / (eng_pop + EPS)))  # cap at 3.0 to prevent runaway scores
 
     # Likes-to-matches ratio: many likes but very few mutual matches → bot pattern
     likes_mu     = population_stats.get("likes_received",  (100.0, 1.0))[0]
     matches_mu   = population_stats.get("mutual_matches",  (14.0,  1.0))[0]
     lm_ratio     = likes / (matches + 1)
     lm_pop       = likes_mu / (matches_mu + 1)
-    z_lm         = max(0.0, (lm_ratio - lm_pop) / (lm_pop + EPS))
-
+    z_lm         = min(3.0, max(0.0, (lm_ratio - lm_pop) / (lm_pop + EPS))) # cap at 3.0
+    
     # ── Weighted risk components (weights reflect behavioral psychology impact) ──
     # Scale: each z-score unit × weight × 1 point → total normalized over 42 pts
     risk_components: Dict[str, float] = {
@@ -636,8 +636,8 @@ def scan_input(
 
     behavioral_score = round(min(100.0, max(0.0, blended_score)), 1)
     
-    # 6. Final verdict: catfish if behavioral score >= 30% OR majority ML vote
-    if behavioral_score >= 30.0 or ml_votes > (len(model_probs) * 0.5):
+    # 6. Final verdict: catfish if majority ML vote, OR extreme behavioral score (>= 60%), OR borderline score (>= 40%) with at least 1 ML vote backing it up
+    if ml_votes > (len(model_probs) * 0.5) or behavioral_score >= 60.0 or (behavioral_score >= 40.0 and ml_votes >= 1):
         final_verdict = "CATFISH"
     else:
         final_verdict = "GENUINE"

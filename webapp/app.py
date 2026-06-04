@@ -57,7 +57,7 @@ def create_app() -> Flask:
         return render_template(
             "scanner.html",
             page_title="Live Profile Scanner",
-            page_description="Detecting Fake Personalities Through Behavioral Intelligence",
+            page_description="The core ML backend. Input exact raw numerical vectors to analyze model probabilities.",
             active_page="scanner",
             **_page_context(get_artifacts()),
         )
@@ -68,7 +68,7 @@ def create_app() -> Flask:
         return render_template(
             "simulator.html",
             page_title="Profile Risk Simulator",
-            page_description="Test behaviors in a live environment",
+            page_description="The human frontend. Build hypothetical profiles using plain English to see how the AI reacts.",
             active_page="simulator",
             **_page_context(artifacts),
         )
